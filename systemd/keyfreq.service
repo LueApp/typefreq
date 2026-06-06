@@ -5,10 +5,16 @@ PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=__INSTALL_DIR__/venv/bin/python -m keyfreq.app
+# `sg input` lets the service read /dev/input/event* even when the
+# user-manager's group list was snapshotted before the user joined `input`.
+ExecStart=/usr/bin/sg input -c "__INSTALL_DIR__/venv/bin/python -m keyfreq.app"
 WorkingDirectory=__INSTALL_DIR__
 Restart=on-failure
 RestartSec=5
+Environment=KEYFREQ_HOST=127.0.0.1
+Environment=KEYFREQ_PORT=__KEYFREQ_PORT__
+Environment=KEYFREQ_PUBLIC_SITE=__KEYFREQ_PUBLIC_SITE__
+Environment=KEYFREQ_ALLOWED_ORIGINS=__KEYFREQ_ALLOWED_ORIGINS__
 # Notifications need access to the user's bus.
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus
 # Pass through display vars for notify-send.

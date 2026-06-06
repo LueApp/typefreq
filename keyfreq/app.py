@@ -17,15 +17,22 @@ import sys
 import threading
 from threading import Lock
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, make_response, render_template, request
 from werkzeug.serving import make_server
 
 import time
 from collections import deque
 
-from . import db
+from . import __version__, db
 from .caret import CaretTracker
-from .config import DB_PATH, HTTP_HOST, HTTP_PORT, TYPO_RETRACT_WINDOW_S
+from .config import (
+    DB_PATH,
+    HTTP_ALLOWED_ORIGINS,
+    HTTP_HOST,
+    HTTP_PORT,
+    PUBLIC_SITE_URL,
+    TYPO_RETRACT_WINDOW_S,
+)
 from .filters import normalize
 from .ime import IMEMonitor
 from .locker import LockerMonitor
@@ -181,9 +188,40 @@ class Engine:
 def make_app(engine: Engine) -> Flask:
     app = Flask(__name__)
 
+    @app.before_request
+    def api_preflight():
+        if request.method == "OPTIONS" and request.path.startswith("/api/"):
+            return make_response(("", 204))
+        return None
+
+    @app.after_request
+    def add_api_cors(response):
+        if not request.path.startswith("/api/"):
+            return response
+        origin = request.headers.get("Origin", "").rstrip("/")
+        if origin not in HTTP_ALLOWED_ORIGINS:
+            return response
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Access-Control-Max-Age"] = "600"
+        response.headers["Vary"] = "Origin"
+        if request.headers.get("Access-Control-Request-Private-Network") == "true":
+            response.headers["Access-Control-Allow-Private-Network"] = "true"
+        return response
+
     @app.get("/")
     def index() -> str:
         return render_template("index.html")
+
+    @app.get("/api/health")
+    def api_health():
+        return jsonify(
+            ok=True,
+            service="keyfreq",
+            version=__version__,
+            public_site=PUBLIC_SITE_URL,
+        )
 
     @app.get("/api/status")
     def api_status():

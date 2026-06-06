@@ -7,30 +7,83 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV="$DIR/venv"
 PYTHON="${PYTHON:-python3}"
+USER_NAME="${USER:?}"
+if [[ $# -gt 0 ]]; then
+  KEYFREQ_PORT="$1"
+fi
+KEYFREQ_PORT="${KEYFREQ_PORT:-8788}"
+KEYFREQ_PUBLIC_SITE="${KEYFREQ_PUBLIC_SITE:-https://keyfreq.lue-app.com}"
+KEYFREQ_ALLOWED_ORIGINS="${KEYFREQ_ALLOWED_ORIGINS:-$KEYFREQ_PUBLIC_SITE,http://localhost:4321,http://127.0.0.1:4321,http://localhost:4325,http://127.0.0.1:4325}"
+APT_PACKAGES=(
+  python3-venv
+  python3-dev
+  python3-tk
+  build-essential
+  xdotool
+  libnotify-bin
+  python3-gi
+  gir1.2-atspi-2.0
+)
 
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[1;31mXX\033[0m %s\n' "$*" >&2; exit 1; }
 
-# 1. Check input group. Three states:
-#    (a) effective member in current shell  -> ready to start now
-#    (b) in /etc/group but not effective    -> need to relogin before start
-#    (c) not in group at all                -> tell user to add + relogin
+if ! [[ "$KEYFREQ_PORT" =~ ^[0-9]+$ ]] || (( KEYFREQ_PORT < 1024 || KEYFREQ_PORT > 65535 )); then
+  die "KEYFREQ_PORT must be a number from 1024 to 65535. Example: ./install.sh 8789"
+fi
+
+run_as_root() {
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
+sed_replacement() {
+  printf '%s' "$1" | sed 's/[&|\\]/\\&/g'
+}
+
+install_ubuntu_packages() {
+  if [[ "${KEYFREQ_SKIP_APT:-0}" == "1" ]]; then
+    warn "Skipping apt dependency installation because KEYFREQ_SKIP_APT=1"
+    return
+  fi
+  if ! command -v apt-get >/dev/null 2>&1; then
+    warn "apt-get not found. Continuing with local checks only."
+    return
+  fi
+  say "Installing common Ubuntu dependencies"
+  if ! run_as_root env DEBIAN_FRONTEND=noninteractive apt-get update; then
+    warn "apt-get update failed. Continuing with dependency checks."
+    return
+  fi
+  if ! run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y "${APT_PACKAGES[@]}"; then
+    warn "apt-get install failed. Continuing with dependency checks."
+  fi
+}
+
+if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+  die "Do not run install.sh with sudo. Run it as your desktop user; the script will use sudo only for apt and group setup."
+fi
+
+install_ubuntu_packages
+
+# 1. Check input group. The systemd unit wraps Python with `sg input`, so
+# membership in /etc/group is enough; the current shell/systemd user-manager
+# does not need to have refreshed its supplemental group list yet.
 WILL_START=1
 if id -nG | tr ' ' '\n' | grep -qx input; then
   : # (a) all good
-elif getent group input | awk -F: -v u="$USER" 'BEGIN{r=1} {n=split($4,a,","); for(i=1;i<=n;i++) if (a[i]==u) r=0} END{exit r}'; then
-  warn "You are in the 'input' group in /etc/group, but the current session"
-  warn "hasn't picked it up yet. systemd --user is also stale. The unit will be"
-  warn "installed and enabled, but the service won't be (re)started now."
-  warn "Log out and back in (or run: loginctl terminate-user \"\$USER\") to activate."
-  WILL_START=0
+elif getent group input | awk -F: -v u="$USER_NAME" 'BEGIN{r=1} {n=split($4,a,","); for(i=1;i<=n;i++) if (a[i]==u) r=0} END{exit r}'; then
+  say "$USER_NAME is already listed in the input group"
+elif getent group input >/dev/null 2>&1; then
+  say "Adding $USER_NAME to the input group so keyfreq can read keyboard events"
+  run_as_root usermod -aG input "$USER_NAME"
+  say "Keyboard permission added. The service wrapper will use it immediately."
 else
-  warn "You are NOT in the 'input' group — evdev cannot read /dev/input/event*."
-  warn "Run:  sudo usermod -aG input \"\$USER\""
-  warn "Then log out and back in (or reboot), and re-run this script."
-  read -r -p "Install the unit anyway (won't start it)? [y/N] " yn
-  case "$yn" in [yY]*) WILL_START=0 ;; *) exit 1 ;; esac
+  die "The 'input' group does not exist on this system. keyfreq currently targets Ubuntu-style input permissions."
 fi
 
 # 2. Ensure pip, venv, Python dev headers (for evdev build), and tkinter (for the overlay).
@@ -77,7 +130,7 @@ fi
 
 if [[ ! -d "$VENV" ]]; then
   say "Creating venv at $VENV"
-  "$PYTHON" -m venv "$VENV"
+  "$PYTHON" -m venv --system-site-packages "$VENV"
 fi
 
 say "Installing dependencies"
@@ -90,7 +143,12 @@ mkdir -p "$UNIT_DIR"
 UNIT_FILE="$UNIT_DIR/keyfreq.service"
 
 say "Writing $UNIT_FILE"
-sed "s|__INSTALL_DIR__|$DIR|g" "$DIR/systemd/keyfreq.service" > "$UNIT_FILE"
+sed \
+  -e "s|__INSTALL_DIR__|$(sed_replacement "$DIR")|g" \
+  -e "s|__KEYFREQ_PORT__|$(sed_replacement "$KEYFREQ_PORT")|g" \
+  -e "s|__KEYFREQ_PUBLIC_SITE__|$(sed_replacement "$KEYFREQ_PUBLIC_SITE")|g" \
+  -e "s|__KEYFREQ_ALLOWED_ORIGINS__|$(sed_replacement "$KEYFREQ_ALLOWED_ORIGINS")|g" \
+  "$DIR/systemd/keyfreq.service" > "$UNIT_FILE"
 
 # 4. Enable and (re)start.
 say "Reloading systemd user units"
@@ -104,7 +162,9 @@ if [[ "$WILL_START" -eq 1 ]]; then
   systemctl --user restart keyfreq.service
   sleep 1
   if systemctl --user is-active --quiet keyfreq.service; then
-    say "keyfreq is running. Dashboard: http://127.0.0.1:8788"
+    say "keyfreq is running."
+    say "Open the public dashboard: https://keyfreq.lue-app.com"
+    say "Local fallback dashboard: http://127.0.0.1:$KEYFREQ_PORT"
     say "Logs:  journalctl --user -u keyfreq -f"
   else
     warn "keyfreq did not start. Inspect with:"
@@ -112,6 +172,7 @@ if [[ "$WILL_START" -eq 1 ]]; then
   fi
 else
   say "Installed and enabled, NOT started."
-  say "After your next login, the service will start automatically on the"
-  say "graphical session, and the dashboard will be at http://127.0.0.1:8788"
+  say "After your next login, the service will start automatically."
+  say "Then open: https://keyfreq.lue-app.com"
+  say "Configured local service port: $KEYFREQ_PORT"
 fi

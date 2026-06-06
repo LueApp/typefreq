@@ -1,0 +1,537 @@
+---
+import '../styles/site.css';
+
+const downloadHref = '/downloads/keyfreq-latest.tar';
+const repoHref = 'https://github.com/LueApp/keyfreq';
+const title = 'keyfreq - typing analytics';
+const description = 'Open the public keyfreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site ?? 'https://keyfreq.lue-app.com')} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site ?? 'https://keyfreq.lue-app.com')} />
+    <meta name="twitter:card" content="summary" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <a class="brand" href="/" aria-label="keyfreq home">
+          <span class="brand-mark">k</span>
+          <span>keyfreq</span>
+        </a>
+        <span id="connection-badge" class="status-pill checking">checking local service</span>
+        <form id="port-form" class="port-control">
+          <label for="port-input">Local port</label>
+          <input id="port-input" type="number" inputmode="numeric" min="1024" max="65535" step="1" value="8788" />
+          <button class="btn" type="submit">Apply</button>
+        </form>
+        <div class="header-actions">
+          <button id="retry-btn" class="btn" type="button">Retry</button>
+          <button id="pause-btn" class="btn" type="button" hidden>Pause</button>
+          <button id="download-installer-btn" class="btn primary" type="button" data-download-href={downloadHref}>Download installer</button>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <section id="dashboard-view" class="dashboard-view" hidden>
+          <div class="summary-row">
+            <article class="stat-card">
+              <span class="stat-label">Words today</span>
+              <strong id="stat-words">-</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Unique today</span>
+              <strong id="stat-unique">-</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Typos today</span>
+              <strong id="stat-typos">-</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Events seen</span>
+              <strong id="stat-events">-</strong>
+            </article>
+          </div>
+
+          <section id="service-notice" class="notice" hidden></section>
+
+          <div class="dashboard-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Top words</h2>
+                <div id="leaderboard-tabs" class="tabs" role="tablist" aria-label="Leaderboard period">
+                  <button class="tab active" type="button" data-period="today">Today</button>
+                  <button class="tab" type="button" data-period="week">Week</button>
+                  <button class="tab" type="button" data-period="month">Month</button>
+                  <button class="tab" type="button" data-period="year">Year</button>
+                  <button class="tab" type="button" data-period="alltime">All</button>
+                </div>
+              </div>
+              <p id="leaderboard-caption" class="panel-caption"></p>
+              <div id="top-list" class="top-list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Hourly activity</h2>
+              </div>
+              <div id="hourly-list" class="hourly-list"></div>
+            </section>
+
+            <section class="panel wide">
+              <div class="panel-head">
+                <h2>Recent typos</h2>
+              </div>
+              <div id="typo-list" class="typo-list"></div>
+            </section>
+
+            <section class="panel wide">
+              <div class="panel-head">
+                <h2>Custom words</h2>
+                <span class="panel-caption">Words that should not be flagged as typos.</span>
+              </div>
+              <div id="custom-list" class="chips"></div>
+              <form id="custom-form" class="add-row">
+                <input id="custom-input" type="text" placeholder="Add a word" autocomplete="off" />
+                <button class="btn primary" type="submit">Add</button>
+              </form>
+              <p id="custom-feedback" class="feedback"></p>
+            </section>
+          </div>
+        </section>
+
+        <section id="setup-view" class="setup-view">
+          <div class="setup-intro">
+            <p class="eyebrow">Local service not detected</p>
+            <h1>Install keyfreq, then this page becomes your dashboard.</h1>
+            <p class="lead">
+              This public page reads the desktop service running on your own Ubuntu machine at <code id="local-api-label">127.0.0.1:8788</code>. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.
+            </p>
+            <div class="button-row">
+              <button id="setup-download-installer-btn" class="btn primary" type="button">Download configured installer</button>
+              <a class="btn" href={downloadHref} download>Source package</a>
+              <a class="btn" href={repoHref} target="_blank" rel="noopener noreferrer">View source</a>
+              <button id="setup-retry-btn" class="btn" type="button">I installed it, retry</button>
+            </div>
+          </div>
+
+          <div class="setup-grid">
+            <article class="setup-card primary-card">
+              <h2>Fast path on Ubuntu</h2>
+              <p>The installer handles Python packages, the virtual environment, the user service, and autostart.</p>
+              <pre><code id="install-command">bash keyfreq-install-8788.sh</code></pre>
+              <p class="small-note">The configured installer downloads the package and installs the service on your selected port. You can also extract the source package and run <code id="manual-install-command">./install.sh 8788</code>.</p>
+            </article>
+
+            <article class="setup-card">
+              <h2>What the installer does</h2>
+              <ul class="plain-list">
+                <li>Installs common Ubuntu dependencies with apt when available.</li>
+                <li>Creates a Python virtual environment and installs Python requirements.</li>
+                <li>Enables <code>keyfreq.service</code> as a systemd user service.</li>
+                <li>Keeps the API bound to localhost so data is not exposed publicly.</li>
+              </ul>
+            </article>
+
+            <article class="setup-card">
+              <h2>If it still does not connect</h2>
+              <pre><code>systemctl --user status keyfreq.service
+journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
+              <p class="small-note">The most common first-install issue is needing one sign-out/sign-in after the installer adds keyboard-input permission.</p>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      // @ts-nocheck
+      const DEFAULT_PORT = 8788;
+      const PORT_STORAGE_KEY = 'keyfreq-local-port';
+      const REFRESH_MS = 5000;
+      const REQUEST_TIMEOUT_MS = 2200;
+
+      const els = {
+        badge: document.getElementById('connection-badge'),
+        portForm: document.getElementById('port-form'),
+        portInput: document.getElementById('port-input'),
+        localApiLabel: document.getElementById('local-api-label'),
+        installCommand: document.getElementById('install-command'),
+        manualInstallCommand: document.getElementById('manual-install-command'),
+        downloadInstaller: document.getElementById('download-installer-btn'),
+        setupDownloadInstaller: document.getElementById('setup-download-installer-btn'),
+        dashboard: document.getElementById('dashboard-view'),
+        setup: document.getElementById('setup-view'),
+        retry: document.getElementById('retry-btn'),
+        setupRetry: document.getElementById('setup-retry-btn'),
+        pause: document.getElementById('pause-btn'),
+        words: document.getElementById('stat-words'),
+        unique: document.getElementById('stat-unique'),
+        typos: document.getElementById('stat-typos'),
+        events: document.getElementById('stat-events'),
+        notice: document.getElementById('service-notice'),
+        topList: document.getElementById('top-list'),
+        hourlyList: document.getElementById('hourly-list'),
+        typoList: document.getElementById('typo-list'),
+        customList: document.getElementById('custom-list'),
+        customForm: document.getElementById('custom-form'),
+        customInput: document.getElementById('custom-input'),
+        customFeedback: document.getElementById('custom-feedback'),
+        leaderboardCaption: document.getElementById('leaderboard-caption'),
+      };
+
+      let refreshTimer = null;
+      let activePeriod = 'today';
+      let leaderboards = null;
+      let latestStatus = null;
+      let servicePort = loadPort();
+
+      const periodLabels = {
+        today: 'Today',
+        week: 'This week',
+        month: 'This month',
+        year: 'This year',
+        alltime: 'All time',
+      };
+
+      function esc(value) {
+        return String(value ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
+      function fmt(value) {
+        return Number(value || 0).toLocaleString();
+      }
+
+      function fmtTime(ts) {
+        return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+
+      function isValidPort(value) {
+        return /^[0-9]+$/.test(String(value)) && Number(value) >= 1024 && Number(value) <= 65535;
+      }
+
+      function loadPort() {
+        const stored = localStorage.getItem(PORT_STORAGE_KEY);
+        return isValidPort(stored) ? Number(stored) : DEFAULT_PORT;
+      }
+
+      function localApi() {
+        return `http://127.0.0.1:${servicePort}`;
+      }
+
+      function updatePortUi() {
+        els.portInput.value = String(servicePort);
+        els.localApiLabel.textContent = `127.0.0.1:${servicePort}`;
+        els.installCommand.textContent = `bash keyfreq-install-${servicePort}.sh`;
+        els.manualInstallCommand.textContent = `./install.sh ${servicePort}`;
+      }
+
+      function applyPort(value) {
+        if (!isValidPort(value)) {
+          setConnected(false, 'port must be 1024-65535');
+          return false;
+        }
+        servicePort = Number(value);
+        localStorage.setItem(PORT_STORAGE_KEY, String(servicePort));
+        updatePortUi();
+        return true;
+      }
+
+      async function api(path, options = {}) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        try {
+          const response = await fetch(`${localApi()}${path}`, {
+            mode: 'cors',
+            signal: controller.signal,
+            ...options,
+          });
+          if (!response.ok) {
+            throw new Error(`${response.status} ${response.statusText}`);
+          }
+          return await response.json();
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      function setConnected(connected, message = '') {
+        els.dashboard.hidden = !connected;
+        els.setup.hidden = connected;
+        els.pause.hidden = !connected;
+        els.badge.className = `status-pill ${connected ? 'active' : 'offline'}`;
+        els.badge.textContent = connected ? message || `connected on ${servicePort}` : message || `no service on ${servicePort}`;
+      }
+
+      function setChecking() {
+        els.badge.className = 'status-pill checking';
+        els.badge.textContent = 'checking local service';
+      }
+
+      function renderNotice(status) {
+        if (!status) return;
+        const notices = [];
+        if (status.paused) notices.push('Tracking is paused.');
+        if (!status.paused && Number(status.active_keyboard_count || 0) === 0) {
+          notices.push('The service is running, but no active keyboard is detected yet. If this is a fresh install, sign out and back in once.');
+        }
+        if (status.locker_active) notices.push('Tracking is temporarily skipped because the screen is locked.');
+        if (status.polkit_active) notices.push('Tracking is temporarily skipped while an authentication dialog is active.');
+        els.notice.hidden = notices.length === 0;
+        els.notice.textContent = notices.join(' ');
+      }
+
+      function renderTop(rows) {
+        if (!rows.length) {
+          els.topList.innerHTML = '<div class="empty">No words recorded yet.</div>';
+          return;
+        }
+        const max = rows.reduce((m, row) => Math.max(m, Number(row.count) || 0), 1);
+        els.topList.innerHTML = rows.map((row, index) => {
+          const count = Number(row.count) || 0;
+          const pct = Math.max(3, (count / max) * 100);
+          return `
+            <div class="top-row" title="${esc(row.word)}: ${fmt(count)}">
+              <span class="rank">${index + 1}</span>
+              <span class="word">${esc(row.word)}</span>
+              <span class="bar"><span style="width: ${pct}%"></span></span>
+              <span class="count">${fmt(count)}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderActiveLeaderboard() {
+        if (!leaderboards) return;
+        const data = leaderboards[activePeriod] || { top_words: [] };
+        const rows = data.top_words || [];
+        renderTop(rows);
+        els.leaderboardCaption.textContent = `${periodLabels[activePeriod]} - showing ${rows.length} word${rows.length === 1 ? '' : 's'}`;
+      }
+
+      function renderHourly(rows) {
+        if (!rows.length) {
+          els.hourlyList.innerHTML = '<div class="empty">No hourly activity yet.</div>';
+          return;
+        }
+        const max = rows.reduce((m, row) => Math.max(m, Number(row.words) || 0, Number(row.typos) || 0), 1);
+        els.hourlyList.innerHTML = rows.map((row) => {
+          const wordsPct = Math.max(2, ((Number(row.words) || 0) / max) * 100);
+          const typoPct = Math.max(0, ((Number(row.typos) || 0) / max) * 100);
+          return `
+            <div class="hour-row">
+              <span>${fmtTime(row.hour)}</span>
+              <span class="hour-bars">
+                <span class="hour-word" style="width: ${wordsPct}%"></span>
+                <span class="hour-typo" style="width: ${typoPct}%"></span>
+              </span>
+              <span>${fmt(row.words)}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderTypos(rows) {
+        if (!rows.length) {
+          els.typoList.innerHTML = '<div class="empty">No typos recorded yet.</div>';
+          return;
+        }
+        els.typoList.innerHTML = rows.map((row) => `
+          <div class="typo-row">
+            <span class="time">${fmtTime(row.ts)}</span>
+            <span class="bad">${esc(row.word)}</span>
+            <span class="arrow">-></span>
+            <span class="good">${esc(row.suggestion || '?')}</span>
+            <button class="mini-btn" type="button" data-word="${esc(row.word)}">Keep</button>
+          </div>
+        `).join('');
+        els.typoList.querySelectorAll('button[data-word]').forEach((button) => {
+          button.addEventListener('click', () => addCustomWord(button.dataset.word));
+        });
+      }
+
+      function renderCustomWords(words) {
+        if (!words.length) {
+          els.customList.innerHTML = '<div class="empty">No custom words yet.</div>';
+          return;
+        }
+        els.customList.innerHTML = words.map((row) => `
+          <span class="chip">
+            <span>${esc(row.word)}</span>
+            <button type="button" data-word="${esc(row.word)}" aria-label="Remove ${esc(row.word)}">x</button>
+          </span>
+        `).join('');
+        els.customList.querySelectorAll('button[data-word]').forEach((button) => {
+          button.addEventListener('click', () => removeCustomWord(button.dataset.word));
+        });
+      }
+
+      function setFeedback(message, kind = '') {
+        els.customFeedback.textContent = message;
+        els.customFeedback.className = `feedback ${kind}`.trim();
+      }
+
+      async function addCustomWord(word) {
+        const value = String(word || '').trim();
+        if (!value) return;
+        const data = await api('/api/custom-words', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ word: value }),
+        });
+        renderCustomWords(data.words || []);
+        setFeedback(data.added ? `Added "${data.word}".` : `"${data.word}" is already kept.`, 'ok');
+        await refreshData();
+      }
+
+      async function removeCustomWord(word) {
+        if (!word) return;
+        const data = await api(`/api/custom-words/${encodeURIComponent(word)}`, { method: 'DELETE' });
+        renderCustomWords(data.words || []);
+        setFeedback(data.removed ? `Removed "${data.word}".` : `"${data.word}" was not in the list.`, 'ok');
+      }
+
+      async function refreshData() {
+        const [status, today, boards, custom] = await Promise.all([
+          api('/api/status'),
+          api('/api/stats/today'),
+          api('/api/stats/leaderboards'),
+          api('/api/custom-words'),
+        ]);
+        latestStatus = status;
+        leaderboards = boards;
+        els.words.textContent = fmt(today.totals?.words);
+        els.unique.textContent = fmt(today.totals?.unique_words);
+        els.typos.textContent = fmt(today.totals?.typos);
+        els.events.textContent = fmt(status.events_seen);
+        els.pause.textContent = status.paused ? 'Resume' : 'Pause';
+        setConnected(true, status.paused ? `connected on ${servicePort} - paused` : `connected on ${servicePort} - ${status.active_keyboard_count || 0} keyboard${status.active_keyboard_count === 1 ? '' : 's'}`);
+        renderNotice(status);
+        renderHourly(today.hourly || []);
+        renderTypos(today.recent_typos || []);
+        renderCustomWords(custom.words || []);
+        renderActiveLeaderboard();
+      }
+
+      async function connect() {
+        setChecking();
+        clearInterval(refreshTimer);
+        try {
+          const health = await api('/api/health');
+          if (health.service !== 'keyfreq') throw new Error('unexpected service');
+          await refreshData();
+          refreshTimer = setInterval(() => refreshData().catch(() => setConnected(false)), REFRESH_MS);
+        } catch {
+          setConnected(false);
+        }
+      }
+
+      function installerScript(port) {
+        const archiveUrl = new URL(els.downloadInstaller.dataset.downloadHref, window.location.href).toString();
+        const publicOrigin = window.location.origin;
+        const allowedOrigins = [
+          publicOrigin,
+          'http://localhost:4321',
+          'http://127.0.0.1:4321',
+          'http://localhost:4325',
+          'http://127.0.0.1:4325',
+        ].join(',');
+        return `#!/usr/bin/env bash
+set -euo pipefail
+
+KEYFREQ_PORT="${port}"
+KEYFREQ_PUBLIC_SITE="${publicOrigin}"
+KEYFREQ_ALLOWED_ORIGINS="${allowedOrigins}"
+ARCHIVE_URL="${archiveUrl}"
+WORK_DIR="$(mktemp -d)"
+
+cleanup() {
+  rm -rf "$WORK_DIR"
+}
+trap cleanup EXIT
+
+if command -v curl >/dev/null 2>&1; then
+  curl -fsSL "$ARCHIVE_URL" -o "$WORK_DIR/keyfreq-latest.tar"
+elif command -v wget >/dev/null 2>&1; then
+  wget -qO "$WORK_DIR/keyfreq-latest.tar" "$ARCHIVE_URL"
+else
+  echo "curl or wget is required to download keyfreq." >&2
+  exit 1
+fi
+
+tar -xf "$WORK_DIR/keyfreq-latest.tar" -C "$WORK_DIR"
+cd "$WORK_DIR/keyfreq"
+KEYFREQ_PORT="$KEYFREQ_PORT" KEYFREQ_PUBLIC_SITE="$KEYFREQ_PUBLIC_SITE" KEYFREQ_ALLOWED_ORIGINS="$KEYFREQ_ALLOWED_ORIGINS" ./install.sh "$KEYFREQ_PORT"
+`;
+      }
+
+      function downloadConfiguredInstaller() {
+        if (!applyPort(els.portInput.value)) return;
+        const blob = new Blob([installerScript(servicePort)], { type: 'text/x-shellscript' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `keyfreq-install-${servicePort}.sh`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      document.querySelectorAll('#leaderboard-tabs .tab').forEach((button) => {
+        button.addEventListener('click', () => {
+          activePeriod = button.dataset.period;
+          document.querySelectorAll('#leaderboard-tabs .tab').forEach((tab) => {
+            tab.classList.toggle('active', tab === button);
+          });
+          renderActiveLeaderboard();
+        });
+      });
+
+      els.retry.addEventListener('click', connect);
+      els.setupRetry.addEventListener('click', connect);
+      els.downloadInstaller.addEventListener('click', downloadConfiguredInstaller);
+      els.setupDownloadInstaller.addEventListener('click', downloadConfiguredInstaller);
+      els.portForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (applyPort(els.portInput.value)) connect();
+      });
+      els.pause.addEventListener('click', async () => {
+        await api('/api/pause', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paused: !latestStatus?.paused }),
+        });
+        await refreshData();
+      });
+      els.customForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const value = els.customInput.value.trim();
+        if (!value) return;
+        try {
+          await addCustomWord(value);
+          els.customInput.value = '';
+        } catch (error) {
+          setFeedback(error.message || 'Could not add word.', 'err');
+        }
+      });
+
+      updatePortUi();
+      connect();
+    </script>
+  </body>
+</html>

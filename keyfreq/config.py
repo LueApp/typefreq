@@ -35,6 +35,25 @@ TYPO_RETRACT_WINDOW_S = float(os.environ.get("KEYFREQ_TYPO_RETRACT_WINDOW_S", "3
 HTTP_HOST = os.environ.get("KEYFREQ_HOST", "127.0.0.1")
 HTTP_PORT = int(os.environ.get("KEYFREQ_PORT", "8788"))
 
+# Public web UI allowed to read this local service from the user's browser.
+# Keep this restricted: any allowed origin can read the user's local typing
+# analytics while the service is running.
+PUBLIC_SITE_URL = os.environ.get("KEYFREQ_PUBLIC_SITE", "https://keyfreq.lue-app.com").rstrip("/")
+_DEFAULT_ALLOWED_ORIGINS = ",".join(
+    [
+        PUBLIC_SITE_URL,
+        "http://localhost:4321",
+        "http://127.0.0.1:4321",
+        "http://localhost:4325",
+        "http://127.0.0.1:4325",
+    ]
+)
+HTTP_ALLOWED_ORIGINS = {
+    origin.strip().rstrip("/")
+    for origin in os.environ.get("KEYFREQ_ALLOWED_ORIGINS", _DEFAULT_ALLOWED_ORIGINS).split(",")
+    if origin.strip()
+}
+
 # Comma-separated paths to skip when scanning /dev/input devices.
 DEVICE_BLOCKLIST = set(
     p.strip() for p in os.environ.get("KEYFREQ_DEVICE_BLOCKLIST", "").split(",") if p.strip()

@@ -504,6 +504,33 @@ try:
     app = make_app(engine)
     client = app.test_client()
 
+    public_origin = "https://keyfreq.lue-app.com"
+    r = client.get("/api/health", headers={"Origin": public_origin})
+    check("GET /api/health -> 200", r.status_code == 200, f"status={r.status_code}")
+    health = r.get_json()
+    check("health identifies keyfreq", health.get("service") == "keyfreq", repr(health))
+    check("allowed public origin gets CORS header",
+          r.headers.get("Access-Control-Allow-Origin") == public_origin,
+          repr(dict(r.headers)))
+
+    r = client.options(
+        "/api/status",
+        headers={
+            "Origin": public_origin,
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Private-Network": "true",
+        },
+    )
+    check("API preflight -> 204", r.status_code == 204, f"status={r.status_code}")
+    check("preflight allows private network access",
+          r.headers.get("Access-Control-Allow-Private-Network") == "true",
+          repr(dict(r.headers)))
+
+    r = client.get("/api/status", headers={"Origin": "https://example.invalid"})
+    check("unknown origin does not get CORS access",
+          "Access-Control-Allow-Origin" not in r.headers,
+          repr(dict(r.headers)))
+
     r = client.get("/api/status")
     check("GET /api/status -> 200", r.status_code == 200, f"status={r.status_code}")
     data = r.get_json()
