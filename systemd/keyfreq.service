@@ -1,0 +1,18 @@
+[Unit]
+Description=keyfreq — personal typing analytics
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=__INSTALL_DIR__/venv/bin/python -m keyfreq.app
+WorkingDirectory=__INSTALL_DIR__
+Restart=on-failure
+RestartSec=5
+# Notifications need access to the user's bus.
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus
+# Pass through display vars for notify-send.
+PassEnvironment=DISPLAY WAYLAND_DISPLAY XDG_RUNTIME_DIR
+
+[Install]
+WantedBy=graphical-session.target

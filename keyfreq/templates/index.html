@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>keyfreq — typing analytics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-2: #1c2230;
+    --fg: #e6e9ef;
+    --muted: #8a93a6;
+    --accent: #5aa9ff;
+    --warn: #ffb454;
+    --danger: #ff6b6b;
+    --ok: #7ee08a;
+    --border: #232a3a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--fg);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 18px;
+    flex-wrap: wrap;
+  }
+  header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+  header .badge {
+    font-size: 11px; padding: 3px 8px; border-radius: 999px;
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--border);
+  }
+  header .badge.active { color: var(--ok); border-color: var(--ok); }
+  header .badge.paused { color: var(--warn); border-color: var(--warn); }
+  header .spacer { flex: 1; }
+  #db-path {
+    color: var(--muted); font-size: 12px;
+    min-width: 0; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  button {
+    background: var(--panel-2); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 12px; cursor: pointer; font: inherit;
+  }
+  button:hover { border-color: var(--accent); }
+  main { padding: 24px 28px; display: grid; gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    min-width: 0;
+  }
+  .panel h2 { margin: 0 0 12px 0; font-size: 13px; color: var(--muted);
+              text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; grid-column: 1 / -1; }
+  .stat { background: var(--panel); border: 1px solid var(--border);
+          border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase;
+                 letter-spacing: 0.6px; margin-bottom: 6px; }
+  .stat .value { font-size: 26px; font-weight: 600; }
+  .full { grid-column: 1 / -1; }
+  .typos {
+    max-height: 360px; overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;
+  }
+  .typo-row {
+    display: flex; align-items: center; gap: 10px;
+    min-width: 0;
+    padding: 5px 0;
+    border-bottom: 1px dashed var(--border);
+    /* box-shadow inset doesn't affect layout (unlike border-left), so hover
+       can't trigger horizontal overflow inside .typos. */
+    transition: background-color 80ms linear, box-shadow 80ms linear;
+  }
+  .typo-row:nth-child(even) { background: rgba(255, 255, 255, 0.018); }
+  .typo-row:hover {
+    background: rgba(90, 169, 255, 0.10);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .typo-row:last-child { border-bottom: none; }
+  .typo-row .ts { color: var(--muted); width: 60px; flex-shrink: 0; }
+  .typo-row .bad { color: var(--danger); }
+  .typo-row .arrow { color: var(--muted); }
+  .typo-row .good { color: var(--ok); }
+  .typo-row .bad,
+  .typo-row .good {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .typo-row .spacer { flex: 1 1 8px; min-width: 8px; }
+  .typo-row .keep {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 999px; padding: 2px 9px; font-size: 11px; cursor: pointer;
+    transition: color 80ms linear, border-color 80ms linear, background-color 80ms linear;
+  }
+  /* On row hover, the button brightens so its association with the row is obvious. */
+  .typo-row:hover .keep { color: var(--fg); border-color: var(--accent); }
+  /* On direct button hover, switch to the confirm/accept color. */
+  .typo-row .keep:hover { color: var(--ok); border-color: var(--ok); background: rgba(126, 224, 138, 0.08); }
+  .empty { color: var(--muted); font-style: italic; padding: 12px 0; }
+  .chart-box {
+    position: relative;
+    width: 100%;
+    height: 320px;
+    min-width: 0;
+  }
+  /* The leaderboard is DOM-rendered so long word labels can wrap normally. */
+  .chart-box.top {
+    height: auto;
+    min-height: 180px;
+  }
+  .top-list {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+  .top-row {
+    display: grid;
+    grid-template-columns: minmax(68px, 24%) minmax(0, 1fr) minmax(3ch, auto);
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .top-word {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+    max-width: 100%;
+    color: var(--fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+  .top-rank {
+    flex: 0 0 2.5ch;
+    color: var(--muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .top-token {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .top-track {
+    min-width: 0;
+    height: 16px;
+    overflow: hidden;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .top-bar {
+    height: 100%;
+    min-width: 2px;
+    background: linear-gradient(90deg, var(--accent), #7ee08a);
+    border-radius: 3px;
+  }
+  .top-count {
+    color: var(--muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab {
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 4px 12px; font-size: 12px; cursor: pointer;
+    transition: color 80ms linear, border-color 80ms linear, background-color 80ms linear;
+  }
+  .tab:hover { color: var(--fg); border-color: var(--accent); }
+  .tab.active {
+    color: var(--bg); background: var(--accent); border-color: var(--accent);
+    font-weight: 600;
+  }
+  .tab-caption {
+    color: var(--muted); font-size: 11px; margin-bottom: 8px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 4px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .chip-word {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .chip .x {
+    flex: 0 0 auto;
+    cursor: pointer; color: var(--muted); user-select: none;
+    border: none; background: transparent; padding: 0 0 0 4px; font-size: 13px;
+  }
+  .chip .x:hover { color: var(--danger); }
+  .add-row { display: flex; gap: 8px; margin-top: 12px; }
+  .add-row input {
+    flex: 1; background: var(--panel-2); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;
+    font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;
+  }
+  .add-row input:focus { outline: none; border-color: var(--accent); }
+  .feedback { color: var(--muted); font-size: 12px; margin-top: 8px; min-height: 1em; }
+  .feedback.ok { color: var(--ok); }
+  .feedback.err { color: var(--danger); }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 560px) {
+    header { padding: 14px 16px; gap: 10px; }
+    header .spacer { display: none; }
+    main { padding: 16px; gap: 14px; }
+    .panel, .stat { padding: 14px; }
+    .stats { grid-template-columns: 1fr; gap: 10px; }
+    .tab { flex: 1 1 calc(50% - 4px); padding: 6px 8px; }
+    .typo-row {
+      align-items: baseline;
+      flex-wrap: wrap;
+      row-gap: 4px;
+    }
+    .typo-row .ts { width: auto; flex-basis: 100%; }
+    .typo-row .keep { margin-left: auto; }
+    .top-row {
+      grid-template-columns: minmax(64px, 28%) minmax(0, 1fr) minmax(3ch, auto);
+      gap: 8px;
+    }
+    .add-row { flex-direction: column; }
+    .add-row button { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>keyfreq</h1>
+  <span id="status-badge" class="badge">…</span>
+  <span class="spacer"></span>
+  <span id="db-path"></span>
+  <button id="pause-btn" type="button">Pause</button>
+</header>
+
+<main>
+  <section class="stats">
+    <div class="stat"><div class="label">Words today</div><div id="stat-words" class="value">–</div></div>
+    <div class="stat"><div class="label">Unique today</div><div id="stat-unique" class="value">–</div></div>
+    <div class="stat"><div class="label">Typos today</div><div id="stat-typos" class="value">–</div></div>
+    <div class="stat"><div class="label">Events seen</div><div id="stat-events" class="value">–</div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Top words</h2>
+    <div class="tabs" id="leaderboard-tabs">
+      <button class="tab active" type="button" data-period="today">Today</button>
+      <button class="tab" type="button" data-period="week">Week</button>
+      <button class="tab" type="button" data-period="month">Month</button>
+      <button class="tab" type="button" data-period="year">Year</button>
+      <button class="tab" type="button" data-period="alltime">All-time</button>
+    </div>
+    <div id="leaderboard-caption" class="tab-caption"></div>
+    <div class="chart-box top" id="chart-top-box"><div id="chart-top" class="top-list"></div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Hourly activity (today)</h2>
+    <div class="chart-box"><canvas id="chart-hourly"></canvas></div>
+  </section>
+
+  <section class="panel full">
+    <h2>Recent typos</h2>
+    <div id="typo-list" class="typos"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section class="panel full">
+    <h2>Custom words (not flagged as typos)</h2>
+    <div id="custom-list" class="chips"><div class="empty">Loading…</div></div>
+    <div class="add-row">
+      <input id="custom-input" type="text" placeholder="add a word (letters, optional internal hyphen/apostrophe)…" autocomplete="off">
+      <button id="custom-add" type="button">Add</button>
+    </div>
+    <div id="custom-feedback" class="feedback"></div>
+  </section>
+</main>
+
+<script>
+const fmtTime = (ts) => {
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+// Defensive escape for any user-controlled string we splice into innerHTML.
+const esc = (s) => String(s ?? '')
+  .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+
+let hourlyChart = null;
+let leaderboards = null;       // most recent /api/stats/leaderboards payload
+let activePeriod = 'today';    // which tab is currently selected
+
+const PERIOD_LABELS = {
+  today:   'Today',
+  week:    'This week (since Monday)',
+  month:   'This month',
+  year:    'This year',
+  alltime: 'All time',
+};
+
+function renderTop(rows) {
+  const el = document.getElementById('chart-top');
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty">No words recorded yet.</div>';
+    return;
+  }
+  const maxCount = rows.reduce((max, row) => Math.max(max, Number(row.count) || 0), 1);
+  el.innerHTML = rows.map((row, i) => {
+    const count = Number(row.count) || 0;
+    const pct = Math.max(2, (count / maxCount) * 100);
+    const word = esc(row.word);
+    const formatted = count.toLocaleString();
+    return `
+      <div class="top-row" title="${word}: ${formatted}" aria-label="${word}: ${formatted}">
+        <div class="top-word"><span class="top-rank">${i + 1}</span><span class="top-token">${word}</span></div>
+        <div class="top-track"><div class="top-bar" style="width: ${pct}%"></div></div>
+        <div class="top-count">${formatted}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderHourly(rows) {
+  if (typeof Chart === 'undefined') return;
+  const ctx = document.getElementById('chart-hourly');
+  const labels = rows.map(r => fmtTime(r.hour));
+  const words = rows.map(r => r.words);
+  const typos = rows.map(r => r.typos);
+  if (hourlyChart) {
+    hourlyChart.data.labels = labels;
+    hourlyChart.data.datasets[0].data = words;
+    hourlyChart.data.datasets[1].data = typos;
+    hourlyChart.update();
+    return;
+  }
+  hourlyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'words', data: words, borderColor: '#5aa9ff', backgroundColor: 'rgba(90,169,255,.15)', tension: 0.25, fill: true },
+        { label: 'typos', data: typos, borderColor: '#ff6b6b', backgroundColor: 'rgba(255,107,107,.15)', tension: 0.25, fill: true, yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#e6e9ef' } } },
+      scales: {
+        x: { ticks: { color: '#8a93a6' }, grid: { color: '#232a3a' } },
+        y: { ticks: { color: '#e6e9ef' }, grid: { color: '#232a3a' } },
+        y1: { position: 'right', ticks: { color: '#ff6b6b' }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderTypos(rows) {
+  const el = document.getElementById('typo-list');
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty">No typos recorded yet.</div>';
+    return;
+  }
+  el.innerHTML = rows.map(r => `
+    <div class="typo-row">
+      <span class="ts">${fmtTime(r.ts)}</span>
+      <span class="bad">${esc(r.word)}</span>
+      <span class="arrow">→</span>
+      <span class="good">${esc(r.suggestion || '?')}</span>
+      <span class="spacer"></span>
+      <button class="keep" type="button" data-word="${esc(r.word)}" title="Mark this as a valid word — stop flagging it as a typo">✓ keep</button>
+    </div>
+  `).join('');
+  // Wire each "keep" button to the whitelist API.
+  el.querySelectorAll('.keep').forEach(btn => {
+    btn.addEventListener('click', () => addCustomWord(btn.dataset.word));
+  });
+}
+
+function renderCustomWords(words) {
+  const el = document.getElementById('custom-list');
+  if (!words.length) {
+    el.innerHTML = '<div class="empty">No custom words yet. Add some below, or click ✓ keep on any typo.</div>';
+    return;
+  }
+  el.innerHTML = words.map(w => `
+    <span class="chip"><span class="chip-word" title="${esc(w.word)}">${esc(w.word)}</span><button class="x" type="button" data-word="${esc(w.word)}" title="Remove">×</button></span>
+  `).join('');
+  el.querySelectorAll('.x').forEach(btn => {
+    btn.addEventListener('click', () => removeCustomWord(btn.dataset.word));
+  });
+}
+
+function setFeedback(text, kind = '') {
+  const el = document.getElementById('custom-feedback');
+  el.textContent = text;
+  el.className = 'feedback' + (kind ? ' ' + kind : '');
+  if (text) setTimeout(() => { if (el.textContent === text) { el.textContent = ''; el.className = 'feedback'; } }, 4000);
+}
+
+async function addCustomWord(word) {
+  if (!word) return;
+  try {
+    const r = await fetch('/api/custom-words', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word }),
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      setFeedback(data.error || 'failed to add', 'err');
+      return;
+    }
+    let msg = data.added ? `added '${data.word}'` : `'${data.word}' was already in the list`;
+    if (data.typos_removed) msg += ` (and cleared ${data.typos_removed} past typo entr${data.typos_removed === 1 ? 'y' : 'ies'})`;
+    setFeedback(msg, 'ok');
+    renderCustomWords(data.words);
+    // The typos panel & top words depend on this — refresh.
+    refreshToday();
+    refreshLeaderboards();
+  } catch (e) {
+    setFeedback('network error: ' + e.message, 'err');
+  }
+}
+
+async function removeCustomWord(word) {
+  if (!word) return;
+  try {
+    const r = await fetch('/api/custom-words/' + encodeURIComponent(word), { method: 'DELETE' });
+    const data = await r.json();
+    if (!r.ok) {
+      setFeedback(data.error || 'failed to remove', 'err');
+      return;
+    }
+    setFeedback(data.removed ? `removed '${data.word}'` : `'${data.word}' was not in the list`, 'ok');
+    renderCustomWords(data.words);
+  } catch (e) {
+    setFeedback('network error: ' + e.message, 'err');
+  }
+}
+
+async function refreshCustomWords() {
+  const r = await fetch('/api/custom-words'); const s = await r.json();
+  renderCustomWords(s.words || []);
+}
+
+async function refreshStatus() {
+  const r = await fetch('/api/status'); const s = await r.json();
+  const b = document.getElementById('status-badge');
+  b.className = 'badge ' + (s.paused ? 'paused' : 'active');
+  b.textContent = s.paused ? 'paused' : `tracking (${s.active_keyboard_count || 0} kb)`;
+  document.getElementById('pause-btn').textContent = s.paused ? 'Resume' : 'Pause';
+  document.getElementById('db-path').textContent = s.db_path;
+  document.getElementById('stat-events').textContent = s.events_seen.toLocaleString();
+}
+
+async function refreshToday() {
+  const r = await fetch('/api/stats/today'); const s = await r.json();
+  document.getElementById('stat-words').textContent = s.totals.words.toLocaleString();
+  document.getElementById('stat-unique').textContent = s.totals.unique_words.toLocaleString();
+  document.getElementById('stat-typos').textContent = s.totals.typos.toLocaleString();
+  renderHourly(s.hourly);
+  renderTypos(s.recent_typos);
+}
+
+function renderActiveLeaderboard() {
+  if (!leaderboards) return;
+  const data = leaderboards[activePeriod];
+  if (!data) return;
+  renderTop(data.top_words || []);
+  const caption = document.getElementById('leaderboard-caption');
+  const rows = (data.top_words || []).length;
+  caption.textContent = `${PERIOD_LABELS[activePeriod]} — showing ${rows} word${rows === 1 ? '' : 's'}`;
+}
+
+async function refreshLeaderboards() {
+  const r = await fetch('/api/stats/leaderboards');
+  leaderboards = await r.json();
+  renderActiveLeaderboard();
+}
+
+document.querySelectorAll('#leaderboard-tabs .tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activePeriod = btn.dataset.period;
+    document.querySelectorAll('#leaderboard-tabs .tab').forEach(b => {
+      b.classList.toggle('active', b === btn);
+    });
+    renderActiveLeaderboard();
+  });
+});
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    renderActiveLeaderboard();
+    if (hourlyChart) hourlyChart.resize();
+  }, 100);
+});
+
+document.getElementById('pause-btn').addEventListener('click', async () => {
+  await fetch('/api/pause', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  refreshStatus();
+});
+
+const customInput = document.getElementById('custom-input');
+document.getElementById('custom-add').addEventListener('click', () => {
+  const v = customInput.value.trim();
+  if (v) { addCustomWord(v); customInput.value = ''; }
+});
+customInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const v = customInput.value.trim();
+    if (v) { addCustomWord(v); customInput.value = ''; }
+  }
+});
+
+async function loop() {
+  try {
+    await refreshStatus();
+    await refreshToday();
+    await refreshLeaderboards();
+    await refreshCustomWords();
+  } catch (e) { console.error(e); }
+}
+loop();
+setInterval(loop, 5000);
+</script>
+</body>
+</html>
