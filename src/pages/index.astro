@@ -118,12 +118,12 @@ const defaultDescription = 'Open the public typefreq web UI. It displays local t
 
         <section id="setup-view" class="setup-view">
           <div class="setup-intro">
-            <p class="eyebrow" data-i18n="setupEyebrow">Local service not detected</p>
-            <h1 data-i18n="setupTitle">Install typefreq, then this page becomes your dashboard.</h1>
+            <p id="intro-eyebrow" class="eyebrow" data-i18n="setupEyebrow">Local service not detected</p>
+            <h1 id="intro-title" data-i18n="setupTitle">Install typefreq, then this page becomes your dashboard.</h1>
             <p class="lead">
-              <span data-i18n="setupLeadBefore">This public page reads the desktop service running on your own Ubuntu machine at </span><code id="local-api-label">127.0.0.1:8788</code><span data-i18n="setupLeadAfter">. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.</span>
+              <span id="intro-lead-before" data-i18n="setupLeadBefore">This public page reads the desktop service running on your own Ubuntu machine at </span><code id="local-api-label">127.0.0.1:8788</code><span id="intro-lead-after" data-i18n="setupLeadAfter">. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.</span>
             </p>
-            <div class="button-row">
+            <div id="setup-actions" class="button-row">
               <button id="setup-download-installer-btn" class="btn primary" type="button" data-i18n="downloadConfiguredInstaller">Download configured installer</button>
               <a class="btn" href={downloadHref} download data-i18n="sourcePackage">Source package</a>
               <a class="btn" href={repoHref} target="_blank" rel="noopener noreferrer" data-i18n="viewSource">View source</a>
@@ -131,7 +131,7 @@ const defaultDescription = 'Open the public typefreq web UI. It displays local t
             </div>
           </div>
 
-          <div class="setup-grid">
+          <div id="setup-guide" class="setup-grid">
             <article class="setup-card primary-card">
               <h2 data-i18n="fastPathTitle">Fast path on Ubuntu</h2>
               <p data-i18n="fastPathBody">The installer handles Python packages, the virtual environment, the user service, and autostart.</p>
@@ -212,6 +212,10 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           setupTitle: 'Install typefreq, then this page becomes your dashboard.',
           setupLeadBefore: 'This public page reads the desktop service running on your own Ubuntu machine at ',
           setupLeadAfter: '. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.',
+          setupConnectedEyebrow: 'Local service connected',
+          setupConnectedTitle: 'Your typefreq dashboard is reading your local service.',
+          setupConnectedLeadBefore: 'This public page is reading the desktop service running on your own Ubuntu machine at ',
+          setupConnectedLeadAfter: '. Your typing data stays on this machine, and the dashboard below updates automatically.',
           downloadConfiguredInstaller: 'Download configured installer',
           sourcePackage: 'Source package',
           viewSource: 'View source',
@@ -294,6 +298,10 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           setupTitle: '安装 typefreq 后，此页面会变成你的仪表盘。',
           setupLeadBefore: '此公共页面会读取你自己的 Ubuntu 机器上运行的桌面服务：',
           setupLeadAfter: '。如果服务已安装并在所选端口运行，你的数据会自动显示在这里。如果还未安装，请按下面步骤操作。',
+          setupConnectedEyebrow: '本地服务已连接',
+          setupConnectedTitle: '你的 typefreq 仪表盘正在读取本地服务。',
+          setupConnectedLeadBefore: '此公共页面正在读取你自己的 Ubuntu 机器上运行的桌面服务：',
+          setupConnectedLeadAfter: '。打字数据会保留在本机，下面的仪表盘会自动更新。',
           downloadConfiguredInstaller: '下载已配置安装器',
           sourcePackage: '源码包',
           viewSource: '查看源码',
@@ -341,11 +349,17 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         languageSelect: document.getElementById('language-select'),
         portForm: document.getElementById('port-form'),
         portInput: document.getElementById('port-input'),
+        introEyebrow: document.getElementById('intro-eyebrow'),
+        introTitle: document.getElementById('intro-title'),
+        introLeadBefore: document.getElementById('intro-lead-before'),
+        introLeadAfter: document.getElementById('intro-lead-after'),
         localApiLabel: document.getElementById('local-api-label'),
         installCommand: document.getElementById('install-command'),
         manualInstallCommand: document.getElementById('manual-install-command'),
         downloadInstaller: document.getElementById('download-installer-btn'),
         setupDownloadInstaller: document.getElementById('setup-download-installer-btn'),
+        setupActions: document.getElementById('setup-actions'),
+        setupGuide: document.getElementById('setup-guide'),
         dashboard: document.getElementById('dashboard-view'),
         setup: document.getElementById('setup-view'),
         retry: document.getElementById('retry-btn'),
@@ -482,12 +496,38 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         }
       }
 
+      function syncIntroText(connected) {
+        const keys = connected ? {
+          eyebrow: 'setupConnectedEyebrow',
+          title: 'setupConnectedTitle',
+          leadBefore: 'setupConnectedLeadBefore',
+          leadAfter: 'setupConnectedLeadAfter',
+        } : {
+          eyebrow: 'setupEyebrow',
+          title: 'setupTitle',
+          leadBefore: 'setupLeadBefore',
+          leadAfter: 'setupLeadAfter',
+        };
+        els.introEyebrow.dataset.i18n = keys.eyebrow;
+        els.introTitle.dataset.i18n = keys.title;
+        els.introLeadBefore.dataset.i18n = keys.leadBefore;
+        els.introLeadAfter.dataset.i18n = keys.leadAfter;
+        els.introEyebrow.textContent = t(keys.eyebrow);
+        els.introTitle.textContent = t(keys.title);
+        els.introLeadBefore.textContent = t(keys.leadBefore);
+        els.introLeadAfter.textContent = t(keys.leadAfter);
+      }
+
       function setConnected(connected, message = '') {
         connectionMode = connected ? 'connected' : 'offline';
         if (!connected) latestStatus = null;
         els.dashboard.hidden = !connected;
-        els.setup.hidden = connected;
+        els.setup.hidden = false;
+        els.setup.classList.toggle('connected', connected);
+        els.setupActions.hidden = connected;
+        els.setupGuide.hidden = connected;
         els.pause.hidden = !connected;
+        syncIntroText(connected);
         els.badge.className = `status-pill ${connected ? 'active' : 'offline'}`;
         els.badge.textContent = connected ? message || phrase('connectedOn', { port: servicePort }) : message || phrase('noServiceOn', { port: servicePort });
       }

@@ -225,11 +225,14 @@ pre {
 }
 
 .app-main {
+  display: grid;
+  gap: 22px;
   padding: clamp(14px, 2.5vw, 28px);
 }
 
 .dashboard-view,
 .setup-view {
+  width: min(100%, 1280px);
   max-width: 1280px;
   margin: 0 auto;
 }
@@ -554,6 +557,7 @@ h3 {
 }
 
 .setup-view {
+  order: -1;
   display: grid;
   gap: 22px;
 }
@@ -561,6 +565,18 @@ h3 {
 .setup-intro {
   max-width: 920px;
   padding: clamp(26px, 5vw, 52px) 0 10px;
+}
+
+.setup-view.connected {
+  gap: 0;
+}
+
+.setup-view.connected .setup-intro {
+  padding: clamp(18px, 3vw, 34px) 0 0;
+}
+
+.setup-view.connected h1 {
+  font-size: clamp(30px, 4.4vw, 48px);
 }
 
 .eyebrow {
