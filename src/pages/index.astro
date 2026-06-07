@@ -3,8 +3,8 @@ import '../styles/site.css';
 
 const downloadHref = '/downloads/keyfreq-latest.tar';
 const repoHref = 'https://github.com/LueApp/keyfreq';
-const title = 'keyfreq - typing analytics';
-const description = 'Open the public keyfreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.';
+const defaultTitle = 'keyfreq - typing analytics';
+const defaultDescription = 'Open the public keyfreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.';
 ---
 
 <!doctype html>
@@ -12,32 +12,39 @@ const description = 'Open the public keyfreq web UI. It displays local typing an
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
+    <title>{defaultTitle}</title>
+    <meta name="description" content={defaultDescription} />
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site ?? 'https://keyfreq.lue-app.com')} />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
+    <meta property="og:title" content={defaultTitle} />
+    <meta property="og:description" content={defaultDescription} />
     <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site ?? 'https://keyfreq.lue-app.com')} />
     <meta name="twitter:card" content="summary" />
   </head>
   <body>
     <div class="app-shell">
       <header class="app-header">
-        <a class="brand" href="/" aria-label="keyfreq home">
+        <a class="brand" href="/" aria-label="keyfreq home" data-i18n-aria="brandHomeLabel">
           <span class="brand-mark">k</span>
           <span>keyfreq</span>
         </a>
-        <span id="connection-badge" class="status-pill checking">checking local service</span>
+        <span id="connection-badge" class="status-pill checking" data-i18n="statusChecking">checking local service</span>
+        <label class="language-control" for="language-select">
+          <span data-i18n="languageLabel">Language</span>
+          <select id="language-select" aria-label="Language" data-i18n-aria="languageLabel">
+            <option value="en" data-i18n="languageEnglish">English</option>
+            <option value="zh" data-i18n="languageChinese">中文</option>
+          </select>
+        </label>
         <form id="port-form" class="port-control">
-          <label for="port-input">Local port</label>
+          <label for="port-input" data-i18n="localPort">Local port</label>
           <input id="port-input" type="number" inputmode="numeric" min="1024" max="65535" step="1" value="8788" />
-          <button class="btn" type="submit">Apply</button>
+          <button class="btn" type="submit" data-i18n="apply">Apply</button>
         </form>
         <div class="header-actions">
-          <button id="retry-btn" class="btn" type="button">Retry</button>
-          <button id="pause-btn" class="btn" type="button" hidden>Pause</button>
-          <button id="download-installer-btn" class="btn primary" type="button" data-download-href={downloadHref}>Download installer</button>
+          <button id="retry-btn" class="btn" type="button" data-i18n="retry">Retry</button>
+          <button id="pause-btn" class="btn" type="button" hidden data-i18n="pause">Pause</button>
+          <button id="download-installer-btn" class="btn primary" type="button" data-download-href={downloadHref} data-i18n="downloadInstaller">Download installer</button>
         </div>
       </header>
 
@@ -45,19 +52,19 @@ const description = 'Open the public keyfreq web UI. It displays local typing an
         <section id="dashboard-view" class="dashboard-view" hidden>
           <div class="summary-row">
             <article class="stat-card">
-              <span class="stat-label">Words today</span>
+              <span class="stat-label" data-i18n="wordsToday">Words today</span>
               <strong id="stat-words">-</strong>
             </article>
             <article class="stat-card">
-              <span class="stat-label">Unique today</span>
+              <span class="stat-label" data-i18n="uniqueToday">Unique today</span>
               <strong id="stat-unique">-</strong>
             </article>
             <article class="stat-card">
-              <span class="stat-label">Typos today</span>
+              <span class="stat-label" data-i18n="typosToday">Typos today</span>
               <strong id="stat-typos">-</strong>
             </article>
             <article class="stat-card">
-              <span class="stat-label">Events seen</span>
+              <span class="stat-label" data-i18n="eventsSeen">Events seen</span>
               <strong id="stat-events">-</strong>
             </article>
           </div>
@@ -67,13 +74,13 @@ const description = 'Open the public keyfreq web UI. It displays local typing an
           <div class="dashboard-grid">
             <section class="panel">
               <div class="panel-head">
-                <h2>Top words</h2>
-                <div id="leaderboard-tabs" class="tabs" role="tablist" aria-label="Leaderboard period">
-                  <button class="tab active" type="button" data-period="today">Today</button>
-                  <button class="tab" type="button" data-period="week">Week</button>
-                  <button class="tab" type="button" data-period="month">Month</button>
-                  <button class="tab" type="button" data-period="year">Year</button>
-                  <button class="tab" type="button" data-period="alltime">All</button>
+                <h2 data-i18n="topWords">Top words</h2>
+                <div id="leaderboard-tabs" class="tabs" role="tablist" aria-label="Leaderboard period" data-i18n-aria="leaderboardPeriod">
+                  <button class="tab active" type="button" data-period="today" data-i18n="periodToday">Today</button>
+                  <button class="tab" type="button" data-period="week" data-i18n="periodWeek">Week</button>
+                  <button class="tab" type="button" data-period="month" data-i18n="periodMonth">Month</button>
+                  <button class="tab" type="button" data-period="year" data-i18n="periodYear">Year</button>
+                  <button class="tab" type="button" data-period="alltime" data-i18n="periodAll">All</button>
                 </div>
               </div>
               <p id="leaderboard-caption" class="panel-caption"></p>
@@ -82,27 +89,27 @@ const description = 'Open the public keyfreq web UI. It displays local typing an
 
             <section class="panel">
               <div class="panel-head">
-                <h2>Hourly activity</h2>
+                <h2 data-i18n="hourlyActivity">Hourly activity</h2>
               </div>
               <div id="hourly-list" class="hourly-list"></div>
             </section>
 
             <section class="panel wide">
               <div class="panel-head">
-                <h2>Recent typos</h2>
+                <h2 data-i18n="recentTypos">Recent typos</h2>
               </div>
               <div id="typo-list" class="typo-list"></div>
             </section>
 
             <section class="panel wide">
               <div class="panel-head">
-                <h2>Custom words</h2>
-                <span class="panel-caption">Words that should not be flagged as typos.</span>
+                <h2 data-i18n="customWords">Custom words</h2>
+                <span class="panel-caption" data-i18n="customWordsCaption">Words that should not be flagged as typos.</span>
               </div>
               <div id="custom-list" class="chips"></div>
               <form id="custom-form" class="add-row">
-                <input id="custom-input" type="text" placeholder="Add a word" autocomplete="off" />
-                <button class="btn primary" type="submit">Add</button>
+                <input id="custom-input" type="text" placeholder="Add a word" autocomplete="off" data-i18n-placeholder="addWordPlaceholder" />
+                <button class="btn primary" type="submit" data-i18n="add">Add</button>
               </form>
               <p id="custom-feedback" class="feedback"></p>
             </section>
@@ -111,42 +118,42 @@ const description = 'Open the public keyfreq web UI. It displays local typing an
 
         <section id="setup-view" class="setup-view">
           <div class="setup-intro">
-            <p class="eyebrow">Local service not detected</p>
-            <h1>Install keyfreq, then this page becomes your dashboard.</h1>
+            <p class="eyebrow" data-i18n="setupEyebrow">Local service not detected</p>
+            <h1 data-i18n="setupTitle">Install keyfreq, then this page becomes your dashboard.</h1>
             <p class="lead">
-              This public page reads the desktop service running on your own Ubuntu machine at <code id="local-api-label">127.0.0.1:8788</code>. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.
+              <span data-i18n="setupLeadBefore">This public page reads the desktop service running on your own Ubuntu machine at </span><code id="local-api-label">127.0.0.1:8788</code><span data-i18n="setupLeadAfter">. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.</span>
             </p>
             <div class="button-row">
-              <button id="setup-download-installer-btn" class="btn primary" type="button">Download configured installer</button>
-              <a class="btn" href={downloadHref} download>Source package</a>
-              <a class="btn" href={repoHref} target="_blank" rel="noopener noreferrer">View source</a>
-              <button id="setup-retry-btn" class="btn" type="button">I installed it, retry</button>
+              <button id="setup-download-installer-btn" class="btn primary" type="button" data-i18n="downloadConfiguredInstaller">Download configured installer</button>
+              <a class="btn" href={downloadHref} download data-i18n="sourcePackage">Source package</a>
+              <a class="btn" href={repoHref} target="_blank" rel="noopener noreferrer" data-i18n="viewSource">View source</a>
+              <button id="setup-retry-btn" class="btn" type="button" data-i18n="installedRetry">I installed it, retry</button>
             </div>
           </div>
 
           <div class="setup-grid">
             <article class="setup-card primary-card">
-              <h2>Fast path on Ubuntu</h2>
-              <p>The installer handles Python packages, the virtual environment, the user service, and autostart.</p>
+              <h2 data-i18n="fastPathTitle">Fast path on Ubuntu</h2>
+              <p data-i18n="fastPathBody">The installer handles Python packages, the virtual environment, the user service, and autostart.</p>
               <pre><code id="install-command">bash keyfreq-install-8788.sh</code></pre>
-              <p class="small-note">The configured installer downloads the package and installs the service on your selected port. You can also extract the source package and run <code id="manual-install-command">./install.sh 8788</code>.</p>
+              <p class="small-note"><span data-i18n="fastPathNoteBefore">The configured installer downloads the package and installs the service on your selected port. You can also extract the source package and run </span><code id="manual-install-command">./install.sh 8788</code><span data-i18n="fastPathNoteAfter">.</span></p>
             </article>
 
             <article class="setup-card">
-              <h2>What the installer does</h2>
+              <h2 data-i18n="installerDoesTitle">What the installer does</h2>
               <ul class="plain-list">
-                <li>Installs common Ubuntu dependencies with apt when available.</li>
-                <li>Creates a Python virtual environment and installs Python requirements.</li>
-                <li>Enables <code>keyfreq.service</code> as a systemd user service.</li>
-                <li>Keeps the API bound to localhost so data is not exposed publicly.</li>
+                <li data-i18n="installerDoesApt">Installs common Ubuntu dependencies with apt when available.</li>
+                <li data-i18n="installerDoesVenv">Creates a Python virtual environment and installs Python requirements.</li>
+                <li><span data-i18n="installerDoesServiceBefore">Enables </span><code>keyfreq.service</code><span data-i18n="installerDoesServiceAfter"> as a systemd user service.</span></li>
+                <li data-i18n="installerDoesLocalhost">Keeps the API bound to localhost so data is not exposed publicly.</li>
               </ul>
             </article>
 
             <article class="setup-card">
-              <h2>If it still does not connect</h2>
+              <h2 data-i18n="stillNoConnectTitle">If it still does not connect</h2>
               <pre><code>systemctl --user status keyfreq.service
 journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
-              <p class="small-note">The most common first-install issue is needing one sign-out/sign-in after the installer adds keyboard-input permission.</p>
+              <p class="small-note" data-i18n="stillNoConnectNote">The most common first-install issue is needing one sign-out/sign-in after the installer adds keyboard-input permission.</p>
             </article>
           </div>
         </section>
@@ -157,11 +164,181 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
       // @ts-nocheck
       const DEFAULT_PORT = 8788;
       const PORT_STORAGE_KEY = 'keyfreq-local-port';
+      const LANGUAGE_STORAGE_KEY = 'keyfreq-language';
       const REFRESH_MS = 5000;
       const REQUEST_TIMEOUT_MS = 2200;
+      const DEFAULT_LANGUAGE = 'en';
+
+      const translations = {
+        en: {
+          htmlLang: 'en',
+          locale: 'en-US',
+          metaTitle: 'keyfreq - typing analytics',
+          metaDescription: 'Open the public keyfreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.',
+          brandHomeLabel: 'keyfreq home',
+          statusChecking: 'checking local service',
+          languageLabel: 'Language',
+          languageEnglish: 'English',
+          languageChinese: '中文',
+          localPort: 'Local port',
+          apply: 'Apply',
+          retry: 'Retry',
+          pause: 'Pause',
+          resume: 'Resume',
+          downloadInstaller: 'Download installer',
+          wordsToday: 'Words today',
+          uniqueToday: 'Unique today',
+          typosToday: 'Typos today',
+          eventsSeen: 'Events seen',
+          topWords: 'Top words',
+          leaderboardPeriod: 'Leaderboard period',
+          periodToday: 'Today',
+          periodWeek: 'Week',
+          periodMonth: 'Month',
+          periodYear: 'Year',
+          periodAll: 'All',
+          periodTodayCaption: 'Today',
+          periodWeekCaption: 'This week',
+          periodMonthCaption: 'This month',
+          periodYearCaption: 'This year',
+          periodAllCaption: 'All time',
+          hourlyActivity: 'Hourly activity',
+          recentTypos: 'Recent typos',
+          customWords: 'Custom words',
+          customWordsCaption: 'Words that should not be flagged as typos.',
+          addWordPlaceholder: 'Add a word',
+          add: 'Add',
+          setupEyebrow: 'Local service not detected',
+          setupTitle: 'Install keyfreq, then this page becomes your dashboard.',
+          setupLeadBefore: 'This public page reads the desktop service running on your own Ubuntu machine at ',
+          setupLeadAfter: '. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.',
+          downloadConfiguredInstaller: 'Download configured installer',
+          sourcePackage: 'Source package',
+          viewSource: 'View source',
+          installedRetry: 'I installed it, retry',
+          fastPathTitle: 'Fast path on Ubuntu',
+          fastPathBody: 'The installer handles Python packages, the virtual environment, the user service, and autostart.',
+          fastPathNoteBefore: 'The configured installer downloads the package and installs the service on your selected port. You can also extract the source package and run ',
+          fastPathNoteAfter: '.',
+          installerDoesTitle: 'What the installer does',
+          installerDoesApt: 'Installs common Ubuntu dependencies with apt when available.',
+          installerDoesVenv: 'Creates a Python virtual environment and installs Python requirements.',
+          installerDoesServiceBefore: 'Enables ',
+          installerDoesServiceAfter: ' as a systemd user service.',
+          installerDoesLocalhost: 'Keeps the API bound to localhost so data is not exposed publicly.',
+          stillNoConnectTitle: 'If it still does not connect',
+          stillNoConnectNote: 'The most common first-install issue is needing one sign-out/sign-in after the installer adds keyboard-input permission.',
+          portInvalid: 'port must be 1024-65535',
+          connectedOn: 'connected on {port}',
+          noServiceOn: 'no service on {port}',
+          connectedPaused: 'connected on {port} - paused',
+          connectedKeyboardOne: 'connected on {port} - {count} keyboard',
+          connectedKeyboardMany: 'connected on {port} - {count} keyboards',
+          noticePaused: 'Tracking is paused.',
+          noticeNoKeyboard: 'The service is running, but no active keyboard is detected yet. If this is a fresh install, sign out and back in once.',
+          noticeLocked: 'Tracking is temporarily skipped because the screen is locked.',
+          noticePolkit: 'Tracking is temporarily skipped while an authentication dialog is active.',
+          emptyTopWords: 'No words recorded yet.',
+          emptyHourly: 'No hourly activity yet.',
+          emptyTypos: 'No typos recorded yet.',
+          emptyCustomWords: 'No custom words yet.',
+          leaderboardCaptionOne: '{period} - showing {count} word',
+          leaderboardCaptionMany: '{period} - showing {count} words',
+          keep: 'Keep',
+          removeLabel: 'Remove {word}',
+          customAdded: 'Added "{word}".',
+          customAlreadyKept: '"{word}" is already kept.',
+          customRemoved: 'Removed "{word}".',
+          customNotInList: '"{word}" was not in the list.',
+          couldNotAddWord: 'Could not add word.',
+        },
+        zh: {
+          htmlLang: 'zh-CN',
+          locale: 'zh-CN',
+          metaTitle: 'keyfreq - 打字统计',
+          metaDescription: '打开 keyfreq 公共网页界面。安装桌面服务后，它会显示本机打字统计；未安装时则显示安装指引。',
+          brandHomeLabel: 'keyfreq 首页',
+          statusChecking: '正在检查本地服务',
+          languageLabel: '语言',
+          languageEnglish: 'English',
+          languageChinese: '中文',
+          localPort: '本地端口',
+          apply: '应用',
+          retry: '重试',
+          pause: '暂停',
+          resume: '继续',
+          downloadInstaller: '下载安装器',
+          wordsToday: '今日词数',
+          uniqueToday: '今日不同词',
+          typosToday: '今日错词',
+          eventsSeen: '已捕获事件',
+          topWords: '高频词',
+          leaderboardPeriod: '排行榜时间范围',
+          periodToday: '今天',
+          periodWeek: '本周',
+          periodMonth: '本月',
+          periodYear: '今年',
+          periodAll: '全部',
+          periodTodayCaption: '今天',
+          periodWeekCaption: '本周',
+          periodMonthCaption: '本月',
+          periodYearCaption: '今年',
+          periodAllCaption: '全部时间',
+          hourlyActivity: '每小时活动',
+          recentTypos: '最近错词',
+          customWords: '自定义词',
+          customWordsCaption: '这些词不会被标记为错词。',
+          addWordPlaceholder: '添加一个词',
+          add: '添加',
+          setupEyebrow: '未检测到本地服务',
+          setupTitle: '安装 keyfreq 后，此页面会变成你的仪表盘。',
+          setupLeadBefore: '此公共页面会读取你自己的 Ubuntu 机器上运行的桌面服务：',
+          setupLeadAfter: '。如果服务已安装并在所选端口运行，你的数据会自动显示在这里。如果还未安装，请按下面步骤操作。',
+          downloadConfiguredInstaller: '下载已配置安装器',
+          sourcePackage: '源码包',
+          viewSource: '查看源码',
+          installedRetry: '已安装，重试',
+          fastPathTitle: 'Ubuntu 快速安装',
+          fastPathBody: '安装器会处理 Python 包、虚拟环境、用户服务和开机自启动。',
+          fastPathNoteBefore: '已配置安装器会下载安装包，并在你选择的端口上安装服务。你也可以解压源码包后运行 ',
+          fastPathNoteAfter: '。',
+          installerDoesTitle: '安装器会做什么',
+          installerDoesApt: '在可用时通过 apt 安装常见 Ubuntu 依赖。',
+          installerDoesVenv: '创建 Python 虚拟环境并安装 Python 依赖。',
+          installerDoesServiceBefore: '启用 ',
+          installerDoesServiceAfter: ' 作为 systemd 用户服务。',
+          installerDoesLocalhost: '将 API 绑定到 localhost，避免数据公开暴露。',
+          stillNoConnectTitle: '如果仍然无法连接',
+          stillNoConnectNote: '首次安装最常见的问题是：安装器添加键盘输入权限后，需要注销并重新登录一次。',
+          portInvalid: '端口必须在 1024-65535 之间',
+          connectedOn: '已连接到 {port}',
+          noServiceOn: '{port} 上没有服务',
+          connectedPaused: '已连接到 {port} - 已暂停',
+          connectedKeyboardOne: '已连接到 {port} - {count} 个键盘',
+          connectedKeyboardMany: '已连接到 {port} - {count} 个键盘',
+          noticePaused: '追踪已暂停。',
+          noticeNoKeyboard: '服务正在运行，但还没有检测到活动键盘。如果是刚安装，请先注销并重新登录一次。',
+          noticeLocked: '屏幕锁定时会暂时跳过追踪。',
+          noticePolkit: '认证对话框处于活动状态时会暂时跳过追踪。',
+          emptyTopWords: '还没有记录任何词。',
+          emptyHourly: '还没有每小时活动记录。',
+          emptyTypos: '还没有错词记录。',
+          emptyCustomWords: '还没有自定义词。',
+          leaderboardCaptionOne: '{period} - 显示 {count} 个词',
+          leaderboardCaptionMany: '{period} - 显示 {count} 个词',
+          keep: '保留',
+          removeLabel: '移除 {word}',
+          customAdded: '已添加“{word}”。',
+          customAlreadyKept: '“{word}”已经保留。',
+          customRemoved: '已移除“{word}”。',
+          customNotInList: '“{word}”不在列表中。',
+          couldNotAddWord: '无法添加这个词。',
+        },
+      };
 
       const els = {
         badge: document.getElementById('connection-badge'),
+        languageSelect: document.getElementById('language-select'),
         portForm: document.getElementById('port-form'),
         portInput: document.getElementById('port-input'),
         localApiLabel: document.getElementById('local-api-label'),
@@ -193,15 +370,9 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
       let activePeriod = 'today';
       let leaderboards = null;
       let latestStatus = null;
+      let connectionMode = 'checking';
       let servicePort = loadPort();
-
-      const periodLabels = {
-        today: 'Today',
-        week: 'This week',
-        month: 'This month',
-        year: 'This year',
-        alltime: 'All time',
-      };
+      let currentLanguage = loadLanguage();
 
       function esc(value) {
         return String(value ?? '')
@@ -212,12 +383,20 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
           .replaceAll("'", '&#39;');
       }
 
+      function t(key) {
+        return translations[currentLanguage]?.[key] ?? translations.en[key] ?? key;
+      }
+
+      function phrase(key, values = {}) {
+        return t(key).replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? ''));
+      }
+
       function fmt(value) {
-        return Number(value || 0).toLocaleString();
+        return Number(value || 0).toLocaleString(t('locale'));
       }
 
       function fmtTime(ts) {
-        return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return new Date(ts * 1000).toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit' });
       }
 
       function isValidPort(value) {
@@ -227,6 +406,40 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
       function loadPort() {
         const stored = localStorage.getItem(PORT_STORAGE_KEY);
         return isValidPort(stored) ? Number(stored) : DEFAULT_PORT;
+      }
+
+      function loadLanguage() {
+        const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+        return translations[stored] ? stored : DEFAULT_LANGUAGE;
+      }
+
+      function syncLanguageStaticText() {
+        document.documentElement.lang = t('htmlLang');
+        document.title = t('metaTitle');
+        document.querySelector('meta[name="description"]')?.setAttribute('content', t('metaDescription'));
+        document.querySelector('meta[property="og:title"]')?.setAttribute('content', t('metaTitle'));
+        document.querySelector('meta[property="og:description"]')?.setAttribute('content', t('metaDescription'));
+        document.querySelectorAll('[data-i18n]').forEach((element) => {
+          element.textContent = t(element.dataset.i18n);
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
+          element.placeholder = t(element.dataset.i18nPlaceholder);
+        });
+        document.querySelectorAll('[data-i18n-aria]').forEach((element) => {
+          element.setAttribute('aria-label', t(element.dataset.i18nAria));
+        });
+        els.languageSelect.value = currentLanguage;
+      }
+
+      function periodLabel(period) {
+        const periodCaptionKeys = {
+          today: 'periodTodayCaption',
+          week: 'periodWeekCaption',
+          month: 'periodMonthCaption',
+          year: 'periodYearCaption',
+          alltime: 'periodAllCaption',
+        };
+        return t(periodCaptionKeys[period] || 'periodTodayCaption');
       }
 
       function localApi() {
@@ -242,7 +455,7 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
 
       function applyPort(value) {
         if (!isValidPort(value)) {
-          setConnected(false, 'port must be 1024-65535');
+          setConnected(false, t('portInvalid'));
           return false;
         }
         servicePort = Number(value);
@@ -270,34 +483,37 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
       }
 
       function setConnected(connected, message = '') {
+        connectionMode = connected ? 'connected' : 'offline';
+        if (!connected) latestStatus = null;
         els.dashboard.hidden = !connected;
         els.setup.hidden = connected;
         els.pause.hidden = !connected;
         els.badge.className = `status-pill ${connected ? 'active' : 'offline'}`;
-        els.badge.textContent = connected ? message || `connected on ${servicePort}` : message || `no service on ${servicePort}`;
+        els.badge.textContent = connected ? message || phrase('connectedOn', { port: servicePort }) : message || phrase('noServiceOn', { port: servicePort });
       }
 
       function setChecking() {
+        connectionMode = 'checking';
         els.badge.className = 'status-pill checking';
-        els.badge.textContent = 'checking local service';
+        els.badge.textContent = t('statusChecking');
       }
 
       function renderNotice(status) {
         if (!status) return;
         const notices = [];
-        if (status.paused) notices.push('Tracking is paused.');
+        if (status.paused) notices.push(t('noticePaused'));
         if (!status.paused && Number(status.active_keyboard_count || 0) === 0) {
-          notices.push('The service is running, but no active keyboard is detected yet. If this is a fresh install, sign out and back in once.');
+          notices.push(t('noticeNoKeyboard'));
         }
-        if (status.locker_active) notices.push('Tracking is temporarily skipped because the screen is locked.');
-        if (status.polkit_active) notices.push('Tracking is temporarily skipped while an authentication dialog is active.');
+        if (status.locker_active) notices.push(t('noticeLocked'));
+        if (status.polkit_active) notices.push(t('noticePolkit'));
         els.notice.hidden = notices.length === 0;
         els.notice.textContent = notices.join(' ');
       }
 
       function renderTop(rows) {
         if (!rows.length) {
-          els.topList.innerHTML = '<div class="empty">No words recorded yet.</div>';
+          els.topList.innerHTML = `<div class="empty">${esc(t('emptyTopWords'))}</div>`;
           return;
         }
         const max = rows.reduce((m, row) => Math.max(m, Number(row.count) || 0), 1);
@@ -320,12 +536,15 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
         const data = leaderboards[activePeriod] || { top_words: [] };
         const rows = data.top_words || [];
         renderTop(rows);
-        els.leaderboardCaption.textContent = `${periodLabels[activePeriod]} - showing ${rows.length} word${rows.length === 1 ? '' : 's'}`;
+        els.leaderboardCaption.textContent = phrase(rows.length === 1 ? 'leaderboardCaptionOne' : 'leaderboardCaptionMany', {
+          period: periodLabel(activePeriod),
+          count: fmt(rows.length),
+        });
       }
 
       function renderHourly(rows) {
         if (!rows.length) {
-          els.hourlyList.innerHTML = '<div class="empty">No hourly activity yet.</div>';
+          els.hourlyList.innerHTML = `<div class="empty">${esc(t('emptyHourly'))}</div>`;
           return;
         }
         const max = rows.reduce((m, row) => Math.max(m, Number(row.words) || 0, Number(row.typos) || 0), 1);
@@ -347,7 +566,7 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
 
       function renderTypos(rows) {
         if (!rows.length) {
-          els.typoList.innerHTML = '<div class="empty">No typos recorded yet.</div>';
+          els.typoList.innerHTML = `<div class="empty">${esc(t('emptyTypos'))}</div>`;
           return;
         }
         els.typoList.innerHTML = rows.map((row) => `
@@ -356,7 +575,7 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
             <span class="bad">${esc(row.word)}</span>
             <span class="arrow">-></span>
             <span class="good">${esc(row.suggestion || '?')}</span>
-            <button class="mini-btn" type="button" data-word="${esc(row.word)}">Keep</button>
+            <button class="mini-btn" type="button" data-word="${esc(row.word)}">${esc(t('keep'))}</button>
           </div>
         `).join('');
         els.typoList.querySelectorAll('button[data-word]').forEach((button) => {
@@ -366,13 +585,13 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
 
       function renderCustomWords(words) {
         if (!words.length) {
-          els.customList.innerHTML = '<div class="empty">No custom words yet.</div>';
+          els.customList.innerHTML = `<div class="empty">${esc(t('emptyCustomWords'))}</div>`;
           return;
         }
         els.customList.innerHTML = words.map((row) => `
           <span class="chip">
             <span>${esc(row.word)}</span>
-            <button type="button" data-word="${esc(row.word)}" aria-label="Remove ${esc(row.word)}">x</button>
+            <button type="button" data-word="${esc(row.word)}" aria-label="${esc(phrase('removeLabel', { word: row.word }))}">x</button>
           </span>
         `).join('');
         els.customList.querySelectorAll('button[data-word]').forEach((button) => {
@@ -394,7 +613,7 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
           body: JSON.stringify({ word: value }),
         });
         renderCustomWords(data.words || []);
-        setFeedback(data.added ? `Added "${data.word}".` : `"${data.word}" is already kept.`, 'ok');
+        setFeedback(data.added ? phrase('customAdded', { word: data.word }) : phrase('customAlreadyKept', { word: data.word }), 'ok');
         await refreshData();
       }
 
@@ -402,7 +621,7 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
         if (!word) return;
         const data = await api(`/api/custom-words/${encodeURIComponent(word)}`, { method: 'DELETE' });
         renderCustomWords(data.words || []);
-        setFeedback(data.removed ? `Removed "${data.word}".` : `"${data.word}" was not in the list.`, 'ok');
+        setFeedback(data.removed ? phrase('customRemoved', { word: data.word }) : phrase('customNotInList', { word: data.word }), 'ok');
       }
 
       async function refreshData() {
@@ -418,8 +637,9 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
         els.unique.textContent = fmt(today.totals?.unique_words);
         els.typos.textContent = fmt(today.totals?.typos);
         els.events.textContent = fmt(status.events_seen);
-        els.pause.textContent = status.paused ? 'Resume' : 'Pause';
-        setConnected(true, status.paused ? `connected on ${servicePort} - paused` : `connected on ${servicePort} - ${status.active_keyboard_count || 0} keyboard${status.active_keyboard_count === 1 ? '' : 's'}`);
+        els.pause.textContent = status.paused ? t('resume') : t('pause');
+        const keyboardCount = Number(status.active_keyboard_count || 0);
+        setConnected(true, status.paused ? phrase('connectedPaused', { port: servicePort }) : phrase(keyboardCount === 1 ? 'connectedKeyboardOne' : 'connectedKeyboardMany', { port: servicePort, count: keyboardCount }));
         renderNotice(status);
         renderHourly(today.hourly || []);
         renderTypos(today.recent_typos || []);
@@ -506,6 +726,25 @@ KEYFREQ_PORT="$KEYFREQ_PORT" KEYFREQ_PUBLIC_SITE="$KEYFREQ_PUBLIC_SITE" KEYFREQ_
       els.setupRetry.addEventListener('click', connect);
       els.downloadInstaller.addEventListener('click', downloadConfiguredInstaller);
       els.setupDownloadInstaller.addEventListener('click', downloadConfiguredInstaller);
+      els.languageSelect.addEventListener('change', async () => {
+        const nextLanguage = els.languageSelect.value;
+        if (!translations[nextLanguage]) return;
+        const shouldRefreshDashboard = !els.dashboard.hidden;
+        currentLanguage = nextLanguage;
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
+        syncLanguageStaticText();
+        if (connectionMode === 'checking') {
+          setChecking();
+        } else if (shouldRefreshDashboard) {
+          try {
+            await refreshData();
+          } catch {
+            setConnected(false);
+          }
+        } else {
+          setConnected(false);
+        }
+      });
       els.portForm.addEventListener('submit', (event) => {
         event.preventDefault();
         if (applyPort(els.portInput.value)) connect();
@@ -526,10 +765,11 @@ KEYFREQ_PORT="$KEYFREQ_PORT" KEYFREQ_PUBLIC_SITE="$KEYFREQ_PUBLIC_SITE" KEYFREQ_
           await addCustomWord(value);
           els.customInput.value = '';
         } catch (error) {
-          setFeedback(error.message || 'Could not add word.', 'err');
+          setFeedback(error.message || t('couldNotAddWord'), 'err');
         }
       });
 
+      syncLanguageStaticText();
       updatePortUi();
       connect();
     </script>
