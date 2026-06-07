@@ -119,13 +119,13 @@ Configure with:
 
 ## Deploy The Public Website
 
-This repo also contains an Astro static site for Cloudflare Pages.
+This repo also contains an Astro site configured for Cloudflare Workers Assets.
 
-Cloudflare Pages settings:
+Cloudflare settings:
 
-- Framework preset: `Astro`
-- Build command: `npm run build`
-- Build output directory: `dist`
+- Worker name: `typefreq-site`
+- Production domain: `typefreq.lue-app.com`
+- Optional migration alias: `keyfreq.lue-app.com`
 - Node version: `20` or newer
 - Optional environment variable: `SITE_URL=https://typefreq.lue-app.com`
 
@@ -136,6 +136,7 @@ npm install
 npm run dev
 npm run build
 npm run preview
+npm run deploy
 ```
 
-`npm run build` generates `public/downloads/typefreq-latest.tar` before Astro builds the site, so the public page can serve the tool download directly. The generated public site tries to connect to the user's local typefreq service first; if that connection fails, it renders the setup guide.
+`npm run build` generates `public/downloads/typefreq-latest.tar` before Astro builds the site, so the public page can serve the tool download directly. `npm run deploy` publishes the built site with Wrangler. The generated public site tries to connect to the user's local typefreq service first; if that connection fails, it renders the setup guide.
