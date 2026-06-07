@@ -1,9 +1,9 @@
 {
-  "name": "keyfreq-site",
+  "name": "typefreq-site",
   "type": "module",
   "version": "0.1.0",
   "private": true,
-  "description": "Cloudflare Pages site for keyfreq downloads and usage docs.",
+  "description": "Cloudflare Pages site for typefreq downloads and usage docs.",
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",

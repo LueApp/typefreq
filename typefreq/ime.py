@@ -28,7 +28,7 @@ import subprocess
 import time
 from threading import Event, Lock, Thread
 
-log = logging.getLogger("keyfreq.ime")
+log = logging.getLogger("typefreq.ime")
 
 POLL_INTERVAL_S = 0.25
 # Treat the last successful poll as authoritative for this long. If polling
@@ -71,7 +71,7 @@ class IMEMonitor:
         self._thread: Thread | None = None
         if self._available:
             log.info("fcitx5 detected — polling CurrentInputMethod for IME gating")
-            self._thread = Thread(target=self._loop, name="keyfreq-ime-poll", daemon=True)
+            self._thread = Thread(target=self._loop, name="typefreq-ime-poll", daemon=True)
             self._thread.start()
         else:
             log.info("no fcitx5 detected — tracking all keystrokes")

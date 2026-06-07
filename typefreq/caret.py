@@ -21,7 +21,7 @@ import logging
 import time
 from threading import Event, Lock, Thread
 
-log = logging.getLogger("keyfreq.caret")
+log = logging.getLogger("typefreq.caret")
 
 # Caret positions older than this are ignored (caret hasn't moved → user may
 # not even be in a text field anymore).
@@ -64,7 +64,7 @@ class CaretTracker:
     def start(self) -> None:
         if not self._available or self._thread is not None:
             return
-        self._thread = Thread(target=self._run, name="keyfreq-caret", daemon=True)
+        self._thread = Thread(target=self._run, name="typefreq-caret", daemon=True)
         self._thread.start()
 
     def stop(self) -> None:

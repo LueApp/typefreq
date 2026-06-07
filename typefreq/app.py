@@ -7,7 +7,7 @@ main thread):
   worker thread A : Tracker.run()  — evdev keyboard listener
   worker thread B : werkzeug serve_forever — Flask dashboard
 
-Run with:  python -m keyfreq.app
+Run with:  python -m typefreq.app
 """
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(name)s %(levelname)s: %(message)s",
 )
-log = logging.getLogger("keyfreq")
+log = logging.getLogger("typefreq")
 
 
 class Engine:
@@ -218,7 +218,7 @@ def make_app(engine: Engine) -> Flask:
     def api_health():
         return jsonify(
             ok=True,
-            service="keyfreq",
+            service="typefreq",
             version=__version__,
             public_site=PUBLIC_SITE_URL,
         )
@@ -380,7 +380,7 @@ def main() -> int:
         return 2
 
     tracker_thread = threading.Thread(
-        target=_run_tracker, args=(engine,), name="keyfreq-tracker", daemon=True,
+        target=_run_tracker, args=(engine,), name="typefreq-tracker", daemon=True,
     )
     tracker_thread.start()
 
@@ -396,7 +396,7 @@ def main() -> int:
     # --- start Flask via werkzeug make_server (so we can shut it down cleanly) ---
     server = make_server(HTTP_HOST, HTTP_PORT, make_app(engine), threaded=True)
     flask_thread = threading.Thread(
-        target=server.serve_forever, name="keyfreq-flask", daemon=True,
+        target=server.serve_forever, name="typefreq-flask", daemon=True,
     )
     flask_thread.start()
     log.info("dashboard at http://%s:%d", HTTP_HOST, HTTP_PORT)

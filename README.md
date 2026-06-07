@@ -1,6 +1,6 @@
-# keyfreq
+# typefreq
 
-keyfreq is a Linux desktop typing analytics tool. It records word frequency, shows a dashboard, and can surface typo suggestions as lightweight desktop toasts.
+typefreq is a Linux desktop typing analytics tool. It records word frequency, shows a dashboard, and can surface typo suggestions as lightweight desktop toasts.
 
 The public Cloudflare Pages site is the main web UI. When the local desktop service is running, the page reads `http://127.0.0.1:8788` from the user's browser by default and displays the user's local analytics. Users can change the local service port on the web page. When the service is not detected, the same page shows setup guidance.
 
@@ -11,7 +11,7 @@ The data still stays on the user's machine. The local service binds to `127.0.0.
 Download the configured installer from the public site, then run it:
 
 ```bash
-bash keyfreq-install-8788.sh
+bash typefreq-install-8788.sh
 ```
 
 The configured installer downloads the package and passes the selected port and the current public site origin to `install.sh`, so the local service allows the deployed Cloudflare page to read it.
@@ -19,16 +19,16 @@ The configured installer downloads the package and passes the selected port and 
 You can also download the source package directly, extract it, and run the installer:
 
 ```bash
-tar -xf keyfreq-latest.tar
-cd keyfreq
+tar -xf typefreq-latest.tar
+cd typefreq
 ./install.sh 8788
 ```
 
 Or clone the repo:
 
 ```bash
-git clone https://github.com/LueApp/keyfreq.git
-cd keyfreq
+git clone https://github.com/LueApp/typefreq.git
+cd typefreq
 ./install.sh
 ```
 
@@ -38,7 +38,7 @@ On Ubuntu, the installer also attempts to install the common apt dependencies an
 
 ## Linux Requirements
 
-keyfreq needs access to `/dev/input/event*`, so your user must be in the `input` group. The installer handles this on Ubuntu when possible. It also installs or checks for:
+typefreq needs access to `/dev/input/event*`, so your user must be in the `input` group. The installer handles this on Ubuntu when possible. It also installs or checks for:
 
 ```bash
 sudo apt install python3-venv python3-dev python3-tk xdotool libnotify-bin python3-gi gir1.2-atspi-2.0
@@ -51,7 +51,7 @@ sudo apt install python3-venv python3-dev python3-tk xdotool libnotify-bin pytho
 After installation, open:
 
 ```text
-https://keyfreq.lue-app.com
+https://typefreq.lue-app.com
 ```
 
 From the dashboard you can:
@@ -71,21 +71,23 @@ http://127.0.0.1:8788
 ## Service Commands
 
 ```bash
-systemctl --user status keyfreq.service
-systemctl --user restart keyfreq.service
-journalctl --user -u keyfreq -f
+systemctl --user status typefreq.service
+systemctl --user restart typefreq.service
+journalctl --user -u typefreq -f
 ```
 
 ## Configure
 
-Runtime settings are environment variables read by `keyfreq/config.py`.
+Runtime settings are environment variables read by `typefreq/config.py`.
 
 Common options:
 
-- `KEYFREQ_HOST` and `KEYFREQ_PORT` control the local dashboard bind address.
-- `KEYFREQ_LANG` chooses the spell-check language.
-- `KEYFREQ_DATA` and `KEYFREQ_DB` choose where local analytics data is stored.
-- `KEYFREQ_OVERLAY_POSITION` controls where typo toasts appear.
+- `TYPEFREQ_HOST` and `TYPEFREQ_PORT` control the local dashboard bind address.
+- `TYPEFREQ_LANG` chooses the spell-check language.
+- `TYPEFREQ_DATA` and `TYPEFREQ_DB` choose where local analytics data is stored.
+- `TYPEFREQ_OVERLAY_POSITION` controls where typo toasts appear.
+
+For migration from the old `keyfreq` name, legacy `KEYFREQ_*` variables are still honored when the matching `TYPEFREQ_*` variable is not set. If `~/.local/share/keyfreq` already exists and the new data directory does not, typefreq keeps using the existing data directory and database.
 
 The default dashboard bind is `127.0.0.1`, so private typing data is not exposed to the network.
 
@@ -103,6 +105,7 @@ The public page talks to the local service from the user's browser. The service 
 
 Defaults include:
 
+- `https://typefreq.lue-app.com`
 - `https://keyfreq.lue-app.com`
 - `http://localhost:4321`
 - `http://127.0.0.1:4321`
@@ -111,8 +114,8 @@ Defaults include:
 
 Configure with:
 
-- `KEYFREQ_PUBLIC_SITE=https://your-domain.example`
-- `KEYFREQ_ALLOWED_ORIGINS=https://your-domain.example,http://localhost:4321`
+- `TYPEFREQ_PUBLIC_SITE=https://your-domain.example`
+- `TYPEFREQ_ALLOWED_ORIGINS=https://your-domain.example,http://localhost:4321`
 
 ## Deploy The Public Website
 
@@ -124,7 +127,7 @@ Cloudflare Pages settings:
 - Build command: `npm run build`
 - Build output directory: `dist`
 - Node version: `20` or newer
-- Optional environment variable: `SITE_URL=https://keyfreq.lue-app.com`
+- Optional environment variable: `SITE_URL=https://typefreq.lue-app.com`
 
 Local commands:
 
@@ -135,4 +138,4 @@ npm run build
 npm run preview
 ```
 
-`npm run build` generates `public/downloads/keyfreq-latest.tar` before Astro builds the site, so the public page can serve the tool download directly. The generated public site tries to connect to the user's local keyfreq service first; if that connection fails, it renders the setup guide.
+`npm run build` generates `public/downloads/typefreq-latest.tar` before Astro builds the site, so the public page can serve the tool download directly. The generated public site tries to connect to the user's local typefreq service first; if that connection fails, it renders the setup guide.

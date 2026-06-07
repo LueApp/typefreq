@@ -7,10 +7,10 @@ import { spawnSync } from 'node:child_process';
 const root = dirname(fileURLToPath(new URL('../package.json', import.meta.url)));
 const version = await readVersion();
 const buildRoot = join(root, '.download-build');
-const packageRoot = join(buildRoot, 'keyfreq');
+const packageRoot = join(buildRoot, 'typefreq');
 const outputDir = join(root, 'public', 'downloads');
-const versionedOutput = join(outputDir, `keyfreq-${version}.tar`);
-const latestOutput = join(outputDir, 'keyfreq-latest.tar');
+const versionedOutput = join(outputDir, `typefreq-${version}.tar`);
+const latestOutput = join(outputDir, 'typefreq-latest.tar');
 
 await rm(buildRoot, { recursive: true, force: true });
 await mkdir(packageRoot, { recursive: true });
@@ -26,7 +26,7 @@ const filter = (src) => {
   );
 };
 
-await cp(join(root, 'keyfreq'), join(packageRoot, 'keyfreq'), { recursive: true, filter });
+await cp(join(root, 'typefreq'), join(packageRoot, 'typefreq'), { recursive: true, filter });
 await cp(join(root, 'systemd'), join(packageRoot, 'systemd'), { recursive: true, filter });
 for (const file of ['install.sh', 'requirements.txt', 'smoke_test.py', 'README.md']) {
   if (existsSync(join(root, file))) {
@@ -34,7 +34,7 @@ for (const file of ['install.sh', 'requirements.txt', 'smoke_test.py', 'README.m
   }
 }
 
-const tar = spawnSync('tar', ['-cf', versionedOutput, '-C', buildRoot, 'keyfreq'], {
+const tar = spawnSync('tar', ['-cf', versionedOutput, '-C', buildRoot, 'typefreq'], {
   stdio: 'inherit',
 });
 if (tar.status !== 0) {
@@ -46,7 +46,7 @@ await rm(buildRoot, { recursive: true, force: true });
 console.log(`Built download archive: ${latestOutput}`);
 
 async function readVersion() {
-  const init = await readFile(join(root, 'keyfreq', '__init__.py'), 'utf8');
+  const init = await readFile(join(root, 'typefreq', '__init__.py'), 'utf8');
   const match = init.match(/__version__\s*=\s*["']([^"']+)["']/);
   return match?.[1] ?? '0.1.0';
 }

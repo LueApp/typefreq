@@ -25,7 +25,7 @@ from . import keymap
 from .config import DEVICE_BLOCKLIST, IDLE_TIMEOUT_S
 from .filters import normalize
 
-log = logging.getLogger("keyfreq.tracker")
+log = logging.getLogger("typefreq.tracker")
 
 # Pause hotkey: Ctrl + Alt + Shift + P. The extra Shift keeps ordinary
 # application shortcuts from silently pausing tracking for hours.

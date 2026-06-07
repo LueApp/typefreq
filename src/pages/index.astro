@@ -1,10 +1,10 @@
 ---
 import '../styles/site.css';
 
-const downloadHref = '/downloads/keyfreq-latest.tar';
-const repoHref = 'https://github.com/LueApp/keyfreq';
-const defaultTitle = 'keyfreq - typing analytics';
-const defaultDescription = 'Open the public keyfreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.';
+const downloadHref = '/downloads/typefreq-latest.tar';
+const repoHref = 'https://github.com/LueApp/typefreq';
+const defaultTitle = 'typefreq - typing analytics';
+const defaultDescription = 'Open the public typefreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.';
 ---
 
 <!doctype html>
@@ -14,19 +14,19 @@ const defaultDescription = 'Open the public keyfreq web UI. It displays local ty
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{defaultTitle}</title>
     <meta name="description" content={defaultDescription} />
-    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site ?? 'https://keyfreq.lue-app.com')} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site ?? 'https://typefreq.lue-app.com')} />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={defaultTitle} />
     <meta property="og:description" content={defaultDescription} />
-    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site ?? 'https://keyfreq.lue-app.com')} />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site ?? 'https://typefreq.lue-app.com')} />
     <meta name="twitter:card" content="summary" />
   </head>
   <body>
     <div class="app-shell">
       <header class="app-header">
-        <a class="brand" href="/" aria-label="keyfreq home" data-i18n-aria="brandHomeLabel">
+        <a class="brand" href="/" aria-label="typefreq home" data-i18n-aria="brandHomeLabel">
           <span class="brand-mark">k</span>
-          <span>keyfreq</span>
+          <span>typefreq</span>
         </a>
         <span id="connection-badge" class="status-pill checking" data-i18n="statusChecking">checking local service</span>
         <label class="language-control" for="language-select">
@@ -119,7 +119,7 @@ const defaultDescription = 'Open the public keyfreq web UI. It displays local ty
         <section id="setup-view" class="setup-view">
           <div class="setup-intro">
             <p class="eyebrow" data-i18n="setupEyebrow">Local service not detected</p>
-            <h1 data-i18n="setupTitle">Install keyfreq, then this page becomes your dashboard.</h1>
+            <h1 data-i18n="setupTitle">Install typefreq, then this page becomes your dashboard.</h1>
             <p class="lead">
               <span data-i18n="setupLeadBefore">This public page reads the desktop service running on your own Ubuntu machine at </span><code id="local-api-label">127.0.0.1:8788</code><span data-i18n="setupLeadAfter">. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.</span>
             </p>
@@ -135,7 +135,7 @@ const defaultDescription = 'Open the public keyfreq web UI. It displays local ty
             <article class="setup-card primary-card">
               <h2 data-i18n="fastPathTitle">Fast path on Ubuntu</h2>
               <p data-i18n="fastPathBody">The installer handles Python packages, the virtual environment, the user service, and autostart.</p>
-              <pre><code id="install-command">bash keyfreq-install-8788.sh</code></pre>
+              <pre><code id="install-command">bash typefreq-install-8788.sh</code></pre>
               <p class="small-note"><span data-i18n="fastPathNoteBefore">The configured installer downloads the package and installs the service on your selected port. You can also extract the source package and run </span><code id="manual-install-command">./install.sh 8788</code><span data-i18n="fastPathNoteAfter">.</span></p>
             </article>
 
@@ -144,15 +144,15 @@ const defaultDescription = 'Open the public keyfreq web UI. It displays local ty
               <ul class="plain-list">
                 <li data-i18n="installerDoesApt">Installs common Ubuntu dependencies with apt when available.</li>
                 <li data-i18n="installerDoesVenv">Creates a Python virtual environment and installs Python requirements.</li>
-                <li><span data-i18n="installerDoesServiceBefore">Enables </span><code>keyfreq.service</code><span data-i18n="installerDoesServiceAfter"> as a systemd user service.</span></li>
+                <li><span data-i18n="installerDoesServiceBefore">Enables </span><code>typefreq.service</code><span data-i18n="installerDoesServiceAfter"> as a systemd user service.</span></li>
                 <li data-i18n="installerDoesLocalhost">Keeps the API bound to localhost so data is not exposed publicly.</li>
               </ul>
             </article>
 
             <article class="setup-card">
               <h2 data-i18n="stillNoConnectTitle">If it still does not connect</h2>
-              <pre><code>systemctl --user status keyfreq.service
-journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
+              <pre><code>systemctl --user status typefreq.service
+journalctl --user -u typefreq -n 40 --no-pager</code></pre>
               <p class="small-note" data-i18n="stillNoConnectNote">The most common first-install issue is needing one sign-out/sign-in after the installer adds keyboard-input permission.</p>
             </article>
           </div>
@@ -163,8 +163,8 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
     <script>
       // @ts-nocheck
       const DEFAULT_PORT = 8788;
-      const PORT_STORAGE_KEY = 'keyfreq-local-port';
-      const LANGUAGE_STORAGE_KEY = 'keyfreq-language';
+      const PORT_STORAGE_KEY = 'typefreq-local-port';
+      const LANGUAGE_STORAGE_KEY = 'typefreq-language';
       const REFRESH_MS = 5000;
       const REQUEST_TIMEOUT_MS = 2200;
       const DEFAULT_LANGUAGE = 'en';
@@ -173,9 +173,9 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
         en: {
           htmlLang: 'en',
           locale: 'en-US',
-          metaTitle: 'keyfreq - typing analytics',
-          metaDescription: 'Open the public keyfreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.',
-          brandHomeLabel: 'keyfreq home',
+          metaTitle: 'typefreq - typing analytics',
+          metaDescription: 'Open the public typefreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.',
+          brandHomeLabel: 'typefreq home',
           statusChecking: 'checking local service',
           languageLabel: 'Language',
           languageEnglish: 'English',
@@ -209,7 +209,7 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
           addWordPlaceholder: 'Add a word',
           add: 'Add',
           setupEyebrow: 'Local service not detected',
-          setupTitle: 'Install keyfreq, then this page becomes your dashboard.',
+          setupTitle: 'Install typefreq, then this page becomes your dashboard.',
           setupLeadBefore: 'This public page reads the desktop service running on your own Ubuntu machine at ',
           setupLeadAfter: '. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.',
           downloadConfiguredInstaller: 'Download configured installer',
@@ -255,9 +255,9 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
         zh: {
           htmlLang: 'zh-CN',
           locale: 'zh-CN',
-          metaTitle: 'keyfreq - 打字统计',
-          metaDescription: '打开 keyfreq 公共网页界面。安装桌面服务后，它会显示本机打字统计；未安装时则显示安装指引。',
-          brandHomeLabel: 'keyfreq 首页',
+          metaTitle: 'typefreq - 打字统计',
+          metaDescription: '打开 typefreq 公共网页界面。安装桌面服务后，它会显示本机打字统计；未安装时则显示安装指引。',
+          brandHomeLabel: 'typefreq 首页',
           statusChecking: '正在检查本地服务',
           languageLabel: '语言',
           languageEnglish: 'English',
@@ -291,7 +291,7 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
           addWordPlaceholder: '添加一个词',
           add: '添加',
           setupEyebrow: '未检测到本地服务',
-          setupTitle: '安装 keyfreq 后，此页面会变成你的仪表盘。',
+          setupTitle: '安装 typefreq 后，此页面会变成你的仪表盘。',
           setupLeadBefore: '此公共页面会读取你自己的 Ubuntu 机器上运行的桌面服务：',
           setupLeadAfter: '。如果服务已安装并在所选端口运行，你的数据会自动显示在这里。如果还未安装，请按下面步骤操作。',
           downloadConfiguredInstaller: '下载已配置安装器',
@@ -449,7 +449,7 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
       function updatePortUi() {
         els.portInput.value = String(servicePort);
         els.localApiLabel.textContent = `127.0.0.1:${servicePort}`;
-        els.installCommand.textContent = `bash keyfreq-install-${servicePort}.sh`;
+        els.installCommand.textContent = `bash typefreq-install-${servicePort}.sh`;
         els.manualInstallCommand.textContent = `./install.sh ${servicePort}`;
       }
 
@@ -652,7 +652,7 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
         clearInterval(refreshTimer);
         try {
           const health = await api('/api/health');
-          if (health.service !== 'keyfreq') throw new Error('unexpected service');
+          if (health.service !== 'typefreq') throw new Error('unexpected service');
           await refreshData();
           refreshTimer = setInterval(() => refreshData().catch(() => setConnected(false)), REFRESH_MS);
         } catch {
@@ -665,6 +665,7 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
         const publicOrigin = window.location.origin;
         const allowedOrigins = [
           publicOrigin,
+          'https://keyfreq.lue-app.com',
           'http://localhost:4321',
           'http://127.0.0.1:4321',
           'http://localhost:4325',
@@ -673,9 +674,9 @@ journalctl --user -u keyfreq -n 40 --no-pager</code></pre>
         return `#!/usr/bin/env bash
 set -euo pipefail
 
-KEYFREQ_PORT="${port}"
-KEYFREQ_PUBLIC_SITE="${publicOrigin}"
-KEYFREQ_ALLOWED_ORIGINS="${allowedOrigins}"
+TYPEFREQ_PORT="${port}"
+TYPEFREQ_PUBLIC_SITE="${publicOrigin}"
+TYPEFREQ_ALLOWED_ORIGINS="${allowedOrigins}"
 ARCHIVE_URL="${archiveUrl}"
 WORK_DIR="$(mktemp -d)"
 
@@ -685,17 +686,17 @@ cleanup() {
 trap cleanup EXIT
 
 if command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$ARCHIVE_URL" -o "$WORK_DIR/keyfreq-latest.tar"
+  curl -fsSL "$ARCHIVE_URL" -o "$WORK_DIR/typefreq-latest.tar"
 elif command -v wget >/dev/null 2>&1; then
-  wget -qO "$WORK_DIR/keyfreq-latest.tar" "$ARCHIVE_URL"
+  wget -qO "$WORK_DIR/typefreq-latest.tar" "$ARCHIVE_URL"
 else
-  echo "curl or wget is required to download keyfreq." >&2
+  echo "curl or wget is required to download typefreq." >&2
   exit 1
 fi
 
-tar -xf "$WORK_DIR/keyfreq-latest.tar" -C "$WORK_DIR"
-cd "$WORK_DIR/keyfreq"
-KEYFREQ_PORT="$KEYFREQ_PORT" KEYFREQ_PUBLIC_SITE="$KEYFREQ_PUBLIC_SITE" KEYFREQ_ALLOWED_ORIGINS="$KEYFREQ_ALLOWED_ORIGINS" ./install.sh "$KEYFREQ_PORT"
+tar -xf "$WORK_DIR/typefreq-latest.tar" -C "$WORK_DIR"
+cd "$WORK_DIR/typefreq"
+TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPEFREQ_ALLOWED_ORIGINS="$TYPEFREQ_ALLOWED_ORIGINS" ./install.sh "$TYPEFREQ_PORT"
 `;
       }
 
@@ -705,7 +706,7 @@ KEYFREQ_PORT="$KEYFREQ_PORT" KEYFREQ_PUBLIC_SITE="$KEYFREQ_PUBLIC_SITE" KEYFREQ_
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `keyfreq-install-${servicePort}.sh`;
+        link.download = `typefreq-install-${servicePort}.sh`;
         document.body.append(link);
         link.click();
         link.remove();

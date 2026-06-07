@@ -28,7 +28,7 @@ import logging
 import os
 import threading
 
-log = logging.getLogger("keyfreq.locker")
+log = logging.getLogger("typefreq.locker")
 
 # Process basenames matched against argv[0] from /proc/PID/cmdline. We match
 # on argv[0]'s basename (not /proc/PID/comm, which is truncated to 15 chars
@@ -67,7 +67,7 @@ class LockerMonitor:
         # keystroke (otherwise we'd have a one-poll-interval gap on startup).
         self._locked = self._scan()
         self._thread = threading.Thread(
-            target=self._run, name="keyfreq-locker", daemon=True,
+            target=self._run, name="typefreq-locker", daemon=True,
         )
         self._thread.start()
 

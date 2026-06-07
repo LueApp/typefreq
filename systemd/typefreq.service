@@ -1,5 +1,5 @@
 [Unit]
-Description=keyfreq — personal typing analytics
+Description=typefreq — personal typing analytics
 After=graphical-session.target
 PartOf=graphical-session.target
 
@@ -7,14 +7,14 @@ PartOf=graphical-session.target
 Type=simple
 # `sg input` lets the service read /dev/input/event* even when the
 # user-manager's group list was snapshotted before the user joined `input`.
-ExecStart=/usr/bin/sg input -c "__INSTALL_DIR__/venv/bin/python -m keyfreq.app"
+ExecStart=/usr/bin/sg input -c "__INSTALL_DIR__/venv/bin/python -m typefreq.app"
 WorkingDirectory=__INSTALL_DIR__
 Restart=on-failure
 RestartSec=5
-Environment=KEYFREQ_HOST=127.0.0.1
-Environment=KEYFREQ_PORT=__KEYFREQ_PORT__
-Environment=KEYFREQ_PUBLIC_SITE=__KEYFREQ_PUBLIC_SITE__
-Environment=KEYFREQ_ALLOWED_ORIGINS=__KEYFREQ_ALLOWED_ORIGINS__
+Environment=TYPEFREQ_HOST=127.0.0.1
+Environment=TYPEFREQ_PORT=__TYPEFREQ_PORT__
+Environment=TYPEFREQ_PUBLIC_SITE=__TYPEFREQ_PUBLIC_SITE__
+Environment=TYPEFREQ_ALLOWED_ORIGINS=__TYPEFREQ_ALLOWED_ORIGINS__
 # Notifications need access to the user's bus.
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus
 # Pass through display vars for notify-send.

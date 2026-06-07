@@ -1,4 +1,4 @@
-"""SQLite storage for keyfreq.
+"""SQLite storage for typefreq.
 
 Thread model: each thread that talks to the DB gets its own connection via
 `connect()`. SQLite handles concurrent readers natively; writes are serialized

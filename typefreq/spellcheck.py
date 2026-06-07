@@ -21,7 +21,7 @@ from spellchecker import SpellChecker
 
 from .config import LANG, TYPO_COOLDOWN_SEC, TYPO_MIN_LEN, TYPO_RATE_LIMIT_SEC
 
-log = logging.getLogger("keyfreq.spell")
+log = logging.getLogger("typefreq.spell")
 
 
 _ENGLISH_SPELLING_VARIANTS = frozenset(

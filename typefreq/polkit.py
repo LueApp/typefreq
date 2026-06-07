@@ -39,7 +39,7 @@ import subprocess
 import threading
 import time
 
-log = logging.getLogger("keyfreq.polkit")
+log = logging.getLogger("typefreq.polkit")
 
 # Process basenames that strongly suggest a password is being typed RIGHT NOW.
 # These are short-lived helpers / wrappers, distinct from always-running agents.
@@ -89,11 +89,11 @@ class PolkitMonitor:
         if self._proc_active:
             self._active_until = time.monotonic() + GRACE_S
         self._proc_thread = threading.Thread(
-            target=self._proc_loop, name="keyfreq-polkit-proc", daemon=True,
+            target=self._proc_loop, name="typefreq-polkit-proc", daemon=True,
         )
         self._proc_thread.start()
         self._dbus_thread = threading.Thread(
-            target=self._dbus_loop, name="keyfreq-polkit-dbus", daemon=True,
+            target=self._dbus_loop, name="typefreq-polkit-dbus", daemon=True,
         )
         self._dbus_thread.start()
 

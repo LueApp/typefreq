@@ -38,7 +38,7 @@ from .config import (
     OVERLAY_POSITION,
 )
 
-log = logging.getLogger("keyfreq.overlay")
+log = logging.getLogger("typefreq.overlay")
 
 # Tkinter is imported lazily so a missing python3-tk doesn't break import-time.
 _tk = None
@@ -259,7 +259,7 @@ class Overlay:
             return
 
         try:
-            self._root = tk.Tk(className="keyfreq")
+            self._root = tk.Tk(className="typefreq")
         except _TclError as e:
             log.error("Tk failed to start (%s) — falling back to notify-send", e)
             self._fallback_loop()
@@ -398,7 +398,7 @@ class Overlay:
             body = f"{word} → {suggestion}"
             if notify:
                 subprocess.Popen(
-                    [notify, "--app-name=keyfreq", "--expire-time=4000", "Typo?", body],
+                    [notify, "--app-name=typefreq", "--expire-time=4000", "Typo?", body],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 )
             else:

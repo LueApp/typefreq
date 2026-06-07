@@ -1,4 +1,4 @@
-"""Smoke test for keyfreq — exercises everything that doesn't require /dev/input."""
+"""Smoke test for typefreq — exercises everything that doesn't require /dev/input."""
 from __future__ import annotations
 
 import os
@@ -8,14 +8,14 @@ import time
 from pathlib import Path
 
 # Force test DB into a tmpdir before importing the package.
-tmpdir = Path(tempfile.mkdtemp(prefix="keyfreq-test-"))
-os.environ["KEYFREQ_DATA"] = str(tmpdir)
-os.environ["KEYFREQ_DB"] = str(tmpdir / "test.db")
+tmpdir = Path(tempfile.mkdtemp(prefix="typefreq-test-"))
+os.environ["TYPEFREQ_DATA"] = str(tmpdir)
+os.environ["TYPEFREQ_DB"] = str(tmpdir / "test.db")
 
-from keyfreq import db, filters  # noqa: E402
-from keyfreq.caret import CaretTracker  # noqa: E402
-from keyfreq.ime import IMEMonitor  # noqa: E402
-from keyfreq.spellcheck import SpellNotifier  # noqa: E402
+from typefreq import db, filters  # noqa: E402
+from typefreq.caret import CaretTracker  # noqa: E402
+from typefreq.ime import IMEMonitor  # noqa: E402
+from typefreq.spellcheck import SpellNotifier  # noqa: E402
 
 errors: list[str] = []
 
@@ -105,7 +105,7 @@ for cjk in ["你好", "再見", "héllo", "naïve"]:
     check(f"filter rejects non-ASCII {cjk!r}", filters.normalize(cjk) is None)
 
 # 4c. Overlay: enqueue is thread-safe and stop() is idempotent. Don't start Tk here.
-from keyfreq.overlay import Overlay, _compute_origin, _monitor_containing  # noqa: E402
+from typefreq.overlay import Overlay, _compute_origin, _monitor_containing  # noqa: E402
 
 ov = Overlay()
 ov.enqueue("teh", "the")
@@ -132,7 +132,7 @@ check("cursor at (4000,1000) is on top monitor",
 
 # Quick check that the toast is clamped to the cursor's monitor by patching
 # _get_monitors / _mouse_position. (Not depending on a real X server.)
-import keyfreq.overlay as _ov_mod  # noqa: E402
+import typefreq.overlay as _ov_mod  # noqa: E402
 _ov_mod._monitor_cache = mons
 _ov_mod._monitor_cache_at = time.monotonic() + 9999  # never refresh during test
 _ov_mod._mouse_position = lambda default: (4500, 3500)  # near bottom-right of laptop
@@ -172,9 +172,9 @@ caret.stop()  # idempotent
 # between keystrokes. Regression test for the "vercommit" bug — stale buffer
 # fragments from before a mouse click / window switch leaking into a new word.
 try:
-    import keyfreq.tracker as _tracker_mod  # noqa: E402
-    from keyfreq.tracker import Tracker  # noqa: E402
-    from keyfreq.config import IDLE_TIMEOUT_S as _ITS  # noqa: E402
+    import typefreq.tracker as _tracker_mod  # noqa: E402
+    from typefreq.tracker import Tracker  # noqa: E402
+    from typefreq.config import IDLE_TIMEOUT_S as _ITS  # noqa: E402
 
     t = Tracker(on_word=lambda _w: None)
     # Case 1: same instant -> no reset (gap is zero, well below timeout).
@@ -393,7 +393,7 @@ try:
         _tracker_mod.DEVICE_RESCAN_INTERVAL_S = original_rescan_interval
 
     # --- Screen locker: keystrokes must be dropped while a locker is up. ---
-    from keyfreq.locker import LockerMonitor
+    from typefreq.locker import LockerMonitor
 
     class FakeLocker:
         def __init__(self): self.locked = False
@@ -445,7 +445,7 @@ try:
           lm.is_active() is False and hasattr(lm, "is_active"))
 
     # --- Polkit / sudo / askpass guard: same drop-on-active semantics. ---
-    from keyfreq.polkit import PolkitMonitor
+    from typefreq.polkit import PolkitMonitor
 
     class FakePolkit:
         def __init__(self): self.active = False
@@ -498,17 +498,17 @@ except ModuleNotFoundError:
 # 5. App + Flask routes (only if evdev is importable).
 try:
     import evdev  # noqa: F401
-    from keyfreq.app import Engine, make_app
+    from typefreq.app import Engine, make_app
 
     engine = Engine()
     app = make_app(engine)
     client = app.test_client()
 
-    public_origin = "https://keyfreq.lue-app.com"
+    public_origin = "https://typefreq.lue-app.com"
     r = client.get("/api/health", headers={"Origin": public_origin})
     check("GET /api/health -> 200", r.status_code == 200, f"status={r.status_code}")
     health = r.get_json()
-    check("health identifies keyfreq", health.get("service") == "keyfreq", repr(health))
+    check("health identifies typefreq", health.get("service") == "typefreq", repr(health))
     check("allowed public origin gets CORS header",
           r.headers.get("Access-Control-Allow-Origin") == public_origin,
           repr(dict(r.headers)))
@@ -568,7 +568,7 @@ try:
           f"{len(lb['alltime']['top_words'])} rows")
 
     r = client.get("/")
-    check("GET / -> 200 (dashboard renders)", r.status_code == 200 and b"keyfreq" in r.data)
+    check("GET / -> 200 (dashboard renders)", r.status_code == 200 and b"typefreq" in r.data)
 
     # 5b. Cross-thread DB access (Flask handlers run in worker threads with
     # threaded=True). Regression test for a SQLite check_same_thread crash we
@@ -578,7 +578,7 @@ try:
 
     def worker():
         try:
-            engine.read(__import__("keyfreq").db.totals)
+            engine.read(__import__("typefreq").db.totals)
         except Exception as e:
             err.append(e)
 
@@ -703,7 +703,7 @@ try:
           engine.typos_retracted == retracted_before2)
 
     # Aged-out typos can't be retracted. Force the deque entry to look old.
-    from keyfreq.config import TYPO_RETRACT_WINDOW_S
+    from typefreq.config import TYPO_RETRACT_WINDOW_S
     engine._on_word("recieve")
     # Mutate the just-added entry to look like it was recorded long ago.
     old_mono = _time.monotonic() - TYPO_RETRACT_WINDOW_S - 5.0
