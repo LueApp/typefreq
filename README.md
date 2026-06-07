@@ -123,7 +123,7 @@ This repo also contains an Astro site configured for Cloudflare Workers Assets.
 
 Cloudflare settings:
 
-- Worker name: `typefreq-site`
+- Worker name: `typefreq`
 - Production domain: `typefreq.lue-app.com`
 - Optional migration alias: `keyfreq.lue-app.com`
 - Node version: `20` or newer
