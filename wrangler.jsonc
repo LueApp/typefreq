@@ -3,6 +3,12 @@
 	"compatibility_flags": ["global_fetch_strictly_public"],
 	"name": "typefreq",
 	"main": "@astrojs/cloudflare/entrypoints/server",
+	"routes": [
+		{
+			"pattern": "typefreq.lue-app.com",
+			"custom_domain": true
+		}
+	],
 	"assets": {
 		"directory": "./dist",
 		"binding": "ASSETS"

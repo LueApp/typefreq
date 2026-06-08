@@ -3,8 +3,8 @@ import '../styles/site.css';
 
 const downloadHref = '/downloads/typefreq-latest.tar';
 const repoHref = 'https://github.com/LueApp/typefreq';
-const defaultTitle = 'typefreq - typing analytics';
-const defaultDescription = 'Open the public typefreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.';
+const defaultTitle = 'Typefreq - typing analytics';
+const defaultDescription = 'Open the public Typefreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.';
 ---
 
 <!doctype html>
@@ -24,9 +24,9 @@ const defaultDescription = 'Open the public typefreq web UI. It displays local t
   <body>
     <div class="app-shell">
       <header class="app-header">
-        <a class="brand" href="/" aria-label="typefreq home" data-i18n-aria="brandHomeLabel">
-          <span class="brand-mark">k</span>
-          <span>typefreq</span>
+        <a class="brand" href="/" aria-label="Typefreq home" data-i18n-aria="brandHomeLabel">
+          <span class="brand-mark">t</span>
+          <span>Typefreq</span>
         </a>
         <span id="connection-badge" class="status-pill checking" data-i18n="statusChecking">checking local service</span>
         <label class="language-control" for="language-select">
@@ -118,12 +118,12 @@ const defaultDescription = 'Open the public typefreq web UI. It displays local t
 
         <section id="setup-view" class="setup-view">
           <div class="setup-intro">
-            <p class="eyebrow" data-i18n="setupEyebrow">Local service not detected</p>
-            <h1 data-i18n="setupTitle">Install typefreq, then this page becomes your dashboard.</h1>
+            <p id="intro-eyebrow" class="eyebrow" data-i18n="setupEyebrow">Local service not detected</p>
+            <h1 id="intro-title" data-i18n="setupTitle">Install Typefreq, then this page becomes your dashboard.</h1>
             <p class="lead">
-              <span data-i18n="setupLeadBefore">This public page reads the desktop service running on your own Ubuntu machine at </span><code id="local-api-label">127.0.0.1:8788</code><span data-i18n="setupLeadAfter">. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.</span>
+              <span id="intro-lead-before" data-i18n="setupLeadBefore">This public page reads the desktop service running on your own Ubuntu machine at </span><code id="local-api-label">127.0.0.1:8788</code><span id="intro-lead-after" data-i18n="setupLeadAfter">. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.</span>
             </p>
-            <div class="button-row">
+            <div id="setup-actions" class="button-row">
               <button id="setup-download-installer-btn" class="btn primary" type="button" data-i18n="downloadConfiguredInstaller">Download configured installer</button>
               <a class="btn" href={downloadHref} download data-i18n="sourcePackage">Source package</a>
               <a class="btn" href={repoHref} target="_blank" rel="noopener noreferrer" data-i18n="viewSource">View source</a>
@@ -131,8 +131,32 @@ const defaultDescription = 'Open the public typefreq web UI. It displays local t
             </div>
           </div>
 
-          <div class="setup-grid">
-            <article class="setup-card primary-card">
+          <div id="setup-guide" class="setup-grid">
+            <article id="w2l-card" class="setup-card primary-card web2local-card">
+              <div class="w2l-head">
+                <div>
+                  <p class="eyebrow" data-i18n="w2lEyebrow">No terminal path</p>
+                  <h2 data-i18n="w2lTitle">Install with web2local</h2>
+                </div>
+                <span id="w2l-status" class="w2l-status" data-state="checking" data-i18n="w2lChecking">checking web2local</span>
+              </div>
+              <p>
+                <span data-i18n="w2lBodyBefore">Already running </span><a href="https://web2local-bridge.lue-app.com/" target="_blank" rel="noopener noreferrer">web2local</a><span data-i18n="w2lBodyAfter">? It can write and run a configured installer after you approve it. If first-time sudo setup is needed, use the terminal installer below.</span>
+              </p>
+              <div class="w2l-controls">
+                <label for="w2l-port-input" data-i18n="w2lPortLabel">web2local port</label>
+                <input id="w2l-port-input" type="number" inputmode="numeric" min="1" max="65535" step="1" value="7878" />
+                <button id="w2l-check-btn" class="btn" type="button" data-i18n="w2lCheck">Check</button>
+              </div>
+              <div class="button-row">
+                <button id="w2l-install-btn" class="btn primary" type="button" data-i18n="w2lInstall">Install Typefreq</button>
+                <a id="w2l-get-link" class="btn" href="https://web2local-bridge.lue-app.com/" target="_blank" rel="noopener noreferrer" hidden data-i18n="w2lGet">Get web2local</a>
+              </div>
+              <p id="w2l-message" class="small-note"></p>
+              <pre id="w2l-log" class="w2l-log" hidden></pre>
+            </article>
+
+            <article class="setup-card">
               <h2 data-i18n="fastPathTitle">Fast path on Ubuntu</h2>
               <p data-i18n="fastPathBody">The installer handles Python packages, the virtual environment, the user service, and autostart.</p>
               <pre><code id="install-command">bash typefreq-install-8788.sh</code></pre>
@@ -163,19 +187,24 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
     <script>
       // @ts-nocheck
       const DEFAULT_PORT = 8788;
+      const W2L_DEFAULT_PORT = 7878;
       const PORT_STORAGE_KEY = 'typefreq-local-port';
+      const W2L_PORT_STORAGE_KEY = 'typefreq-web2local-port';
       const LANGUAGE_STORAGE_KEY = 'typefreq-language';
       const REFRESH_MS = 5000;
       const REQUEST_TIMEOUT_MS = 2200;
+      const W2L_REQUEST_TIMEOUT_MS = 4000;
+      const W2L_DEPLOY_TIMEOUT_MS = 150000;
+      const W2L_INSTALL_TIMEOUT_MS = 240000;
       const DEFAULT_LANGUAGE = 'en';
 
       const translations = {
         en: {
           htmlLang: 'en',
           locale: 'en-US',
-          metaTitle: 'typefreq - typing analytics',
-          metaDescription: 'Open the public typefreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.',
-          brandHomeLabel: 'typefreq home',
+          metaTitle: 'Typefreq - typing analytics',
+          metaDescription: 'Open the public Typefreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.',
+          brandHomeLabel: 'Typefreq home',
           statusChecking: 'checking local service',
           languageLabel: 'Language',
           languageEnglish: 'English',
@@ -209,9 +238,42 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           addWordPlaceholder: 'Add a word',
           add: 'Add',
           setupEyebrow: 'Local service not detected',
-          setupTitle: 'Install typefreq, then this page becomes your dashboard.',
+          setupTitle: 'Install Typefreq, then this page becomes your dashboard.',
           setupLeadBefore: 'This public page reads the desktop service running on your own Ubuntu machine at ',
           setupLeadAfter: '. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.',
+          setupConnectedEyebrow: 'Local service connected',
+          setupConnectedTitle: 'Your Typefreq dashboard is reading your local service.',
+          setupConnectedLeadBefore: 'This public page is reading the desktop service running on your own Ubuntu machine at ',
+          setupConnectedLeadAfter: '. Your typing data stays on this machine, and the dashboard below updates automatically.',
+          w2lEyebrow: 'No terminal path',
+          w2lTitle: 'Install with web2local',
+          w2lBodyBefore: 'Already running ',
+          w2lBodyAfter: '? It can write and run a configured installer after you approve it. If first-time sudo setup is needed, use the terminal installer below.',
+          w2lPortLabel: 'web2local port',
+          w2lCheck: 'Check',
+          w2lInstall: 'Install Typefreq',
+          w2lGet: 'Get web2local',
+          w2lChecking: 'checking web2local',
+          w2lAbsent: 'web2local not detected',
+          w2lDetected: 'web2local ready',
+          w2lWorking: 'waiting for approval',
+          w2lInstalling: 'installing',
+          w2lReady: 'installed',
+          w2lErrorChip: 'needs attention',
+          w2lHintIdle: 'Detected on port {port}. It will deploy a configured installer for local service port {servicePort}.',
+          w2lHintAbsent: 'Not detected on port {port}. Start web2local, or set its port above and check again.',
+          w2lApprove: 'Approve writing and running the installer in web2local.',
+          w2lInstallingMsg: 'Installer started through web2local. This can take a few minutes.',
+          w2lInstalled: 'Typefreq is running on {port}.',
+          w2lDenied: 'Install was denied in web2local.',
+          w2lApprovalTimeout: 'Timed out waiting for web2local approval. Approve faster, or click Install Typefreq again.',
+          w2lOpaqueOrigin: 'Open this page over http(s) to use web2local. file:// pages cannot start local commands.',
+          w2lNoBash: 'web2local could not find bash to run the installer.',
+          w2lHashUnavailable: 'This browser cannot compute the installer hash in this context. Open the HTTPS site and try again.',
+          w2lOriginRejected: 'web2local rejected this page origin. Check web2local config and try again.',
+          w2lPortInvalid: 'web2local port must be 1-65535.',
+          w2lTimeout: 'The installer did not bring the service online yet. Check the log below, then retry after fixing any prerequisite.',
+          w2lError: 'web2local error: {msg}',
           downloadConfiguredInstaller: 'Download configured installer',
           sourcePackage: 'Source package',
           viewSource: 'View source',
@@ -255,9 +317,9 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         zh: {
           htmlLang: 'zh-CN',
           locale: 'zh-CN',
-          metaTitle: 'typefreq - 打字统计',
-          metaDescription: '打开 typefreq 公共网页界面。安装桌面服务后，它会显示本机打字统计；未安装时则显示安装指引。',
-          brandHomeLabel: 'typefreq 首页',
+          metaTitle: 'Typefreq - 打字统计',
+          metaDescription: '打开 Typefreq 公共网页界面。安装桌面服务后，它会显示本机打字统计；未安装时则显示安装指引。',
+          brandHomeLabel: 'Typefreq 首页',
           statusChecking: '正在检查本地服务',
           languageLabel: '语言',
           languageEnglish: 'English',
@@ -291,9 +353,42 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           addWordPlaceholder: '添加一个词',
           add: '添加',
           setupEyebrow: '未检测到本地服务',
-          setupTitle: '安装 typefreq 后，此页面会变成你的仪表盘。',
+          setupTitle: '安装 Typefreq 后，此页面会变成你的仪表盘。',
           setupLeadBefore: '此公共页面会读取你自己的 Ubuntu 机器上运行的桌面服务：',
           setupLeadAfter: '。如果服务已安装并在所选端口运行，你的数据会自动显示在这里。如果还未安装，请按下面步骤操作。',
+          setupConnectedEyebrow: '本地服务已连接',
+          setupConnectedTitle: '你的 Typefreq 仪表盘正在读取本地服务。',
+          setupConnectedLeadBefore: '此公共页面正在读取你自己的 Ubuntu 机器上运行的桌面服务：',
+          setupConnectedLeadAfter: '。打字数据会保留在本机，下面的仪表盘会自动更新。',
+          w2lEyebrow: '无需终端的路径',
+          w2lTitle: '用 web2local 安装',
+          w2lBodyBefore: '如果 ',
+          w2lBodyAfter: ' 已在运行，此页面可以发送已配置的安装器，并在你确认后写入并运行。若首次安装需要 sudo 权限，请使用下方终端安装器。',
+          w2lPortLabel: 'web2local 端口',
+          w2lCheck: '检查',
+          w2lInstall: '安装 Typefreq',
+          w2lGet: '获取 web2local',
+          w2lChecking: '正在检查 web2local',
+          w2lAbsent: '未检测到 web2local',
+          w2lDetected: 'web2local 已就绪',
+          w2lWorking: '等待确认',
+          w2lInstalling: '正在安装',
+          w2lReady: '已安装',
+          w2lErrorChip: '需要处理',
+          w2lHintIdle: '已在端口 {port} 检测到。将为本地服务端口 {servicePort} 部署已配置安装器。',
+          w2lHintAbsent: '未在端口 {port} 检测到。请启动 web2local，或在上方填写端口后重新检查。',
+          w2lApprove: '请在 web2local 中确认写入并运行安装器。',
+          w2lInstallingMsg: '安装器已通过 web2local 启动，可能需要几分钟。',
+          w2lInstalled: 'Typefreq 已在 {port} 上运行。',
+          w2lDenied: '已在 web2local 中拒绝安装。',
+          w2lApprovalTimeout: '等待 web2local 确认超时。请尽快确认，或再次点击安装 Typefreq。',
+          w2lOpaqueOrigin: '请通过 http(s) 打开此页面才能使用 web2local；file:// 页面不能启动本地命令。',
+          w2lNoBash: 'web2local 找不到 bash 来运行安装器。',
+          w2lHashUnavailable: '当前浏览器环境无法计算安装器哈希。请打开 HTTPS 站点后重试。',
+          w2lOriginRejected: 'web2local 拒绝了此页面来源。请检查 web2local 配置后重试。',
+          w2lPortInvalid: 'web2local 端口必须在 1-65535 之间。',
+          w2lTimeout: '安装器尚未让服务上线。请查看下方日志，修复依赖问题后重试。',
+          w2lError: 'web2local 错误：{msg}',
           downloadConfiguredInstaller: '下载已配置安装器',
           sourcePackage: '源码包',
           viewSource: '查看源码',
@@ -341,11 +436,25 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         languageSelect: document.getElementById('language-select'),
         portForm: document.getElementById('port-form'),
         portInput: document.getElementById('port-input'),
+        introEyebrow: document.getElementById('intro-eyebrow'),
+        introTitle: document.getElementById('intro-title'),
+        introLeadBefore: document.getElementById('intro-lead-before'),
+        introLeadAfter: document.getElementById('intro-lead-after'),
         localApiLabel: document.getElementById('local-api-label'),
         installCommand: document.getElementById('install-command'),
         manualInstallCommand: document.getElementById('manual-install-command'),
+        w2lCard: document.getElementById('w2l-card'),
+        w2lStatus: document.getElementById('w2l-status'),
+        w2lPortInput: document.getElementById('w2l-port-input'),
+        w2lCheck: document.getElementById('w2l-check-btn'),
+        w2lInstall: document.getElementById('w2l-install-btn'),
+        w2lGet: document.getElementById('w2l-get-link'),
+        w2lMessage: document.getElementById('w2l-message'),
+        w2lLog: document.getElementById('w2l-log'),
         downloadInstaller: document.getElementById('download-installer-btn'),
         setupDownloadInstaller: document.getElementById('setup-download-installer-btn'),
+        setupActions: document.getElementById('setup-actions'),
+        setupGuide: document.getElementById('setup-guide'),
         dashboard: document.getElementById('dashboard-view'),
         setup: document.getElementById('setup-view'),
         retry: document.getElementById('retry-btn'),
@@ -372,6 +481,11 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
       let latestStatus = null;
       let connectionMode = 'checking';
       let servicePort = loadPort();
+      let w2lPort = loadW2lPort();
+      let w2lState = 'checking';
+      let w2lBusy = false;
+      let w2lMessageKey = '';
+      let w2lMessageValues = null;
       let currentLanguage = loadLanguage();
 
       function esc(value) {
@@ -403,9 +517,18 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         return /^[0-9]+$/.test(String(value)) && Number(value) >= 1024 && Number(value) <= 65535;
       }
 
+      function isValidAnyPort(value) {
+        return /^[0-9]+$/.test(String(value)) && Number(value) >= 1 && Number(value) <= 65535;
+      }
+
       function loadPort() {
         const stored = localStorage.getItem(PORT_STORAGE_KEY);
         return isValidPort(stored) ? Number(stored) : DEFAULT_PORT;
+      }
+
+      function loadW2lPort() {
+        const stored = localStorage.getItem(W2L_PORT_STORAGE_KEY);
+        return isValidAnyPort(stored) ? Number(stored) : W2L_DEFAULT_PORT;
       }
 
       function loadLanguage() {
@@ -453,6 +576,10 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         els.manualInstallCommand.textContent = `./install.sh ${servicePort}`;
       }
 
+      function updateW2lPortUi() {
+        els.w2lPortInput.value = String(w2lPort);
+      }
+
       function applyPort(value) {
         if (!isValidPort(value)) {
           setConnected(false, t('portInvalid'));
@@ -482,12 +609,38 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         }
       }
 
+      function syncIntroText(connected) {
+        const keys = connected ? {
+          eyebrow: 'setupConnectedEyebrow',
+          title: 'setupConnectedTitle',
+          leadBefore: 'setupConnectedLeadBefore',
+          leadAfter: 'setupConnectedLeadAfter',
+        } : {
+          eyebrow: 'setupEyebrow',
+          title: 'setupTitle',
+          leadBefore: 'setupLeadBefore',
+          leadAfter: 'setupLeadAfter',
+        };
+        els.introEyebrow.dataset.i18n = keys.eyebrow;
+        els.introTitle.dataset.i18n = keys.title;
+        els.introLeadBefore.dataset.i18n = keys.leadBefore;
+        els.introLeadAfter.dataset.i18n = keys.leadAfter;
+        els.introEyebrow.textContent = t(keys.eyebrow);
+        els.introTitle.textContent = t(keys.title);
+        els.introLeadBefore.textContent = t(keys.leadBefore);
+        els.introLeadAfter.textContent = t(keys.leadAfter);
+      }
+
       function setConnected(connected, message = '') {
         connectionMode = connected ? 'connected' : 'offline';
         if (!connected) latestStatus = null;
         els.dashboard.hidden = !connected;
-        els.setup.hidden = connected;
+        els.setup.hidden = false;
+        els.setup.classList.toggle('connected', connected);
+        els.setupActions.hidden = connected;
+        els.setupGuide.hidden = connected;
         els.pause.hidden = !connected;
+        syncIntroText(connected);
         els.badge.className = `status-pill ${connected ? 'active' : 'offline'}`;
         els.badge.textContent = connected ? message || phrase('connectedOn', { port: servicePort }) : message || phrase('noServiceOn', { port: servicePort });
       }
@@ -657,10 +810,12 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           refreshTimer = setInterval(() => refreshData().catch(() => setConnected(false)), REFRESH_MS);
         } catch {
           setConnected(false);
+          refreshW2lCard().catch(() => {});
         }
       }
 
-      function installerScript(port) {
+      function installerScript(port, options = {}) {
+        const web2local = Boolean(options.web2local);
         const archiveUrl = new URL(els.downloadInstaller.dataset.downloadHref, window.location.href).toString();
         const publicOrigin = window.location.origin;
         const allowedOrigins = [
@@ -671,6 +826,24 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           'http://localhost:4325',
           'http://127.0.0.1:4325',
         ].join(',');
+        const web2localPrelude = web2local ? `
+# web2local runs commands without terminal stdin, so avoid sudo paths and fail
+# with a readable prerequisite message instead of prompting invisibly.
+if ! getent group input >/dev/null 2>&1; then
+  echo "The input group does not exist. Use the terminal installer on an Ubuntu-style desktop." >&2
+  exit 1
+fi
+if id -nG | tr ' ' '\\n' | grep -qx input; then
+  :
+elif getent group input | awk -F: -v u="$USER" 'BEGIN{r=1} {n=split($4,a,","); for(i=1;i<=n;i++) if (a[i]==u) r=0} END{exit r}'; then
+  :
+else
+  echo "web2local cannot ask for a sudo password to add $USER to the input group." >&2
+  echo "Run the configured installer in a terminal once, then sign out and back in if needed." >&2
+  exit 1
+fi
+export TYPEFREQ_SKIP_APT="1"
+` : '';
         return `#!/usr/bin/env bash
 set -euo pipefail
 
@@ -678,6 +851,7 @@ TYPEFREQ_PORT="${port}"
 TYPEFREQ_PUBLIC_SITE="${publicOrigin}"
 TYPEFREQ_ALLOWED_ORIGINS="${allowedOrigins}"
 ARCHIVE_URL="${archiveUrl}"
+INSTALL_DIR="\${TYPEFREQ_INSTALL_DIR:-$HOME/.local/lib/typefreq}"
 WORK_DIR="$(mktemp -d)"
 
 cleanup() {
@@ -685,17 +859,31 @@ cleanup() {
 }
 trap cleanup EXIT
 
+case "$INSTALL_DIR" in
+  ""|"/"|"$HOME"|"$HOME/"|"$HOME/."|"$HOME/.local/share/typefreq"|"$HOME/.local/share/typefreq/"|"$HOME/.local/share/keyfreq"|"$HOME/.local/share/keyfreq/")
+    echo "Refusing unsafe TYPEFREQ_INSTALL_DIR: $INSTALL_DIR" >&2
+    exit 1
+    ;;
+esac
+
+${web2localPrelude}
+
 if command -v curl >/dev/null 2>&1; then
   curl -fsSL "$ARCHIVE_URL" -o "$WORK_DIR/typefreq-latest.tar"
 elif command -v wget >/dev/null 2>&1; then
   wget -qO "$WORK_DIR/typefreq-latest.tar" "$ARCHIVE_URL"
 else
-  echo "curl or wget is required to download typefreq." >&2
+  echo "curl or wget is required to download Typefreq." >&2
   exit 1
 fi
 
 tar -xf "$WORK_DIR/typefreq-latest.tar" -C "$WORK_DIR"
-cd "$WORK_DIR/typefreq"
+mkdir -p "$(dirname "$INSTALL_DIR")"
+rm -rf "$INSTALL_DIR.next"
+mv "$WORK_DIR/typefreq" "$INSTALL_DIR.next"
+rm -rf "$INSTALL_DIR"
+mv "$INSTALL_DIR.next" "$INSTALL_DIR"
+cd "$INSTALL_DIR"
 TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPEFREQ_ALLOWED_ORIGINS="$TYPEFREQ_ALLOWED_ORIGINS" ./install.sh "$TYPEFREQ_PORT"
 `;
       }
@@ -713,6 +901,211 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
         URL.revokeObjectURL(url);
       }
 
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      function w2lBase() {
+        return `http://127.0.0.1:${w2lPort}`;
+      }
+
+      function w2lOriginUsable() {
+        return window.location.origin !== 'null' && /^https?:$/i.test(window.location.protocol);
+      }
+
+      const W2L_CHIP_KEYS = {
+        checking: 'w2lChecking',
+        absent: 'w2lAbsent',
+        present: 'w2lDetected',
+        approving: 'w2lWorking',
+        installing: 'w2lInstalling',
+        installed: 'w2lReady',
+        error: 'w2lErrorChip',
+      };
+
+      function setW2lState(state) {
+        w2lState = state;
+        els.w2lStatus.dataset.state = state;
+        els.w2lStatus.textContent = t(W2L_CHIP_KEYS[state] || 'w2lChecking');
+        const busy = state === 'checking' || state === 'approving' || state === 'installing';
+        const canInstall = state === 'present' || state === 'error';
+        els.w2lCheck.disabled = busy;
+        els.w2lInstall.disabled = w2lBusy || !canInstall;
+        els.w2lGet.hidden = !(state === 'absent');
+      }
+
+      function setW2lMessage(key, values = null) {
+        w2lMessageKey = key;
+        w2lMessageValues = values;
+        els.w2lMessage.textContent = key ? phrase(key, values || {}) : '';
+      }
+
+      function renderW2lText() {
+        setW2lState(w2lState);
+        els.w2lMessage.textContent = w2lMessageKey ? phrase(w2lMessageKey, w2lMessageValues || {}) : '';
+      }
+
+      async function sha256Hex(text) {
+        if (!(window.crypto && crypto.subtle)) return null;
+        const bytes = new TextEncoder().encode(text);
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+      }
+
+      async function w2lFetch(path, options = {}, timeoutMs = W2L_REQUEST_TIMEOUT_MS) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          return await fetch(`${w2lBase()}${path}`, {
+            mode: 'cors',
+            signal: controller.signal,
+            ...options,
+          });
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      async function w2lPostJson(path, body, timeoutMs) {
+        const response = await w2lFetch(path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body || {}),
+        }, timeoutMs);
+        let data = {};
+        try { data = await response.json(); } catch { /* tolerate empty/non-JSON */ }
+        if (!response.ok) throw new Error(data.error || `${response.status} ${response.statusText}`);
+        return data;
+      }
+
+      async function refreshW2lCard() {
+        if (w2lBusy || !els.w2lCard || els.setupGuide.hidden) return;
+        if (!w2lOriginUsable()) {
+          setW2lState('absent');
+          setW2lMessage('w2lOpaqueOrigin');
+          return;
+        }
+        setW2lState('checking');
+        try {
+          const response = await w2lFetch('/status');
+          if (!response.ok) throw new Error('not detected');
+          setW2lState('present');
+          setW2lMessage('w2lHintIdle', { port: w2lPort, servicePort });
+        } catch {
+          setW2lState('absent');
+          setW2lMessage('w2lHintAbsent', { port: w2lPort });
+        }
+      }
+
+      async function showW2lLog(pid) {
+        if (!pid) return;
+        try {
+          const response = await w2lFetch(`/logs?pid=${encodeURIComponent(pid)}`);
+          if (!response.ok) return;
+          const data = await response.json();
+          if (data.tail) {
+            els.w2lLog.textContent = data.tail;
+            els.w2lLog.hidden = false;
+          }
+        } catch { /* logs are best effort */ }
+      }
+
+      async function pollServiceInstalled(maxMs, pid) {
+        const started = Date.now();
+        let nextLogAt = 0;
+        while (Date.now() - started < maxMs) {
+          try {
+            const health = await api('/api/health');
+            if (health.service === 'typefreq') return true;
+          } catch { /* service is not up yet */ }
+          if (pid && Date.now() >= nextLogAt) {
+            await showW2lLog(pid);
+            nextLogAt = Date.now() + 5000;
+          }
+          await sleep(2500);
+        }
+        return false;
+      }
+
+      function handleW2lError(error) {
+        if (error?.name === 'AbortError') {
+          setW2lMessage('w2lApprovalTimeout');
+          return;
+        }
+        const message = error?.message || String(error);
+        if (/denied/i.test(message)) setW2lMessage('w2lDenied');
+        else if (/bash|command not found|executable/i.test(message)) setW2lMessage('w2lNoBash');
+        else if (/origin|whitelist|graylist/i.test(message)) setW2lMessage('w2lOriginRejected');
+        else setW2lMessage('w2lError', { msg: message });
+      }
+
+      function applyW2lPort() {
+        if (!isValidAnyPort(els.w2lPortInput.value)) {
+          setW2lState('error');
+          setW2lMessage('w2lPortInvalid');
+          return false;
+        }
+        w2lPort = Number(els.w2lPortInput.value);
+        localStorage.setItem(W2L_PORT_STORAGE_KEY, String(w2lPort));
+        updateW2lPortUi();
+        return true;
+      }
+
+      async function installWithWeb2Local() {
+        if (w2lBusy) return;
+        if (!applyPort(els.portInput.value) || !applyW2lPort()) return;
+        if (!w2lOriginUsable()) {
+          setW2lState('absent');
+          setW2lMessage('w2lOpaqueOrigin');
+          return;
+        }
+
+        w2lBusy = true;
+        els.w2lLog.hidden = true;
+        els.w2lLog.textContent = '';
+        setW2lState('approving');
+        setW2lMessage('w2lApprove');
+
+        let pid = null;
+        try {
+          const source = installerScript(servicePort, { web2local: true });
+          const sha256 = await sha256Hex(source);
+          if (!sha256) {
+            setW2lState('error');
+            setW2lMessage('w2lHashUnavailable');
+            return;
+          }
+          await w2lPostJson('/config/graylist', { origin: window.location.origin });
+          const deployed = await w2lPostJson('/deploy', {
+            source,
+            sha256,
+            filename: `typefreq-install-${servicePort}.sh`,
+            command: 'bash',
+            args: [],
+          }, W2L_DEPLOY_TIMEOUT_MS);
+          pid = deployed.pid || null;
+          setW2lState('installing');
+          setW2lMessage('w2lInstallingMsg');
+          const installed = await pollServiceInstalled(W2L_INSTALL_TIMEOUT_MS, pid);
+          if (installed) {
+            setW2lState('installed');
+            setW2lMessage('w2lInstalled', { port: servicePort });
+            await connect();
+          } else {
+            await showW2lLog(pid);
+            setW2lState('error');
+            setW2lMessage('w2lTimeout');
+          }
+        } catch (error) {
+          setW2lState('error');
+          handleW2lError(error);
+          await showW2lLog(pid);
+        } finally {
+          w2lBusy = false;
+          renderW2lText();
+        }
+      }
+
       document.querySelectorAll('#leaderboard-tabs .tab').forEach((button) => {
         button.addEventListener('click', () => {
           activePeriod = button.dataset.period;
@@ -727,6 +1120,10 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
       els.setupRetry.addEventListener('click', connect);
       els.downloadInstaller.addEventListener('click', downloadConfiguredInstaller);
       els.setupDownloadInstaller.addEventListener('click', downloadConfiguredInstaller);
+      els.w2lCheck.addEventListener('click', () => {
+        if (applyW2lPort()) refreshW2lCard();
+      });
+      els.w2lInstall.addEventListener('click', installWithWeb2Local);
       els.languageSelect.addEventListener('change', async () => {
         const nextLanguage = els.languageSelect.value;
         if (!translations[nextLanguage]) return;
@@ -734,6 +1131,7 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
         currentLanguage = nextLanguage;
         localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
         syncLanguageStaticText();
+        renderW2lText();
         if (connectionMode === 'checking') {
           setChecking();
         } else if (shouldRefreshDashboard) {
@@ -772,6 +1170,7 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
 
       syncLanguageStaticText();
       updatePortUi();
+      updateW2lPortUi();
       connect();
     </script>
   </body>

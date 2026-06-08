@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Bootstrap typefreq: venv, deps, systemd unit, autostart.
-# Idempotent — safe to re-run.
+# Bootstrap Typefreq: venv, deps, systemd unit, autostart.
+# Idempotent - safe to re-run.
 
 set -euo pipefail
 
@@ -79,11 +79,11 @@ if id -nG | tr ' ' '\n' | grep -qx input; then
 elif getent group input | awk -F: -v u="$USER_NAME" 'BEGIN{r=1} {n=split($4,a,","); for(i=1;i<=n;i++) if (a[i]==u) r=0} END{exit r}'; then
   say "$USER_NAME is already listed in the input group"
 elif getent group input >/dev/null 2>&1; then
-  say "Adding $USER_NAME to the input group so typefreq can read keyboard events"
+  say "Adding $USER_NAME to the input group so Typefreq can read keyboard events"
   run_as_root usermod -aG input "$USER_NAME"
   say "Keyboard permission added. The service wrapper will use it immediately."
 else
-  die "The 'input' group does not exist on this system. typefreq currently targets Ubuntu-style input permissions."
+  die "The 'input' group does not exist on this system. Typefreq currently targets Ubuntu-style input permissions."
 fi
 
 # 2. Ensure pip, venv, Python dev headers (for evdev build), and tkinter (for the overlay).
@@ -158,16 +158,16 @@ say "Enabling autostart"
 systemctl --user enable typefreq.service >/dev/null
 
 if [[ "$WILL_START" -eq 1 ]]; then
-  say "Starting typefreq"
+  say "Starting Typefreq"
   systemctl --user restart typefreq.service
   sleep 1
   if systemctl --user is-active --quiet typefreq.service; then
-    say "typefreq is running."
+    say "Typefreq is running."
     say "Open the public dashboard: https://typefreq.lue-app.com"
     say "Local fallback dashboard: http://127.0.0.1:$TYPEFREQ_PORT"
     say "Logs:  journalctl --user -u typefreq -f"
   else
-    warn "typefreq did not start. Inspect with:"
+    warn "Typefreq did not start. Inspect with:"
     warn "    journalctl --user -u typefreq -n 50 --no-pager"
   fi
 else

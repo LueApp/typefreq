@@ -1,5 +1,5 @@
 [Unit]
-Description=typefreq — personal typing analytics
+Description=Typefreq - personal typing analytics
 After=graphical-session.target
 PartOf=graphical-session.target
 
