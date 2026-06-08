@@ -3,8 +3,8 @@ import '../styles/site.css';
 
 const downloadHref = '/downloads/typefreq-latest.tar';
 const repoHref = 'https://github.com/LueApp/typefreq';
-const defaultTitle = 'typefreq - typing analytics';
-const defaultDescription = 'Open the public typefreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.';
+const defaultTitle = 'Typefreq - typing analytics';
+const defaultDescription = 'Open the public Typefreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.';
 ---
 
 <!doctype html>
@@ -24,9 +24,9 @@ const defaultDescription = 'Open the public typefreq web UI. It displays local t
   <body>
     <div class="app-shell">
       <header class="app-header">
-        <a class="brand" href="/" aria-label="typefreq home" data-i18n-aria="brandHomeLabel">
-          <span class="brand-mark">k</span>
-          <span>typefreq</span>
+        <a class="brand" href="/" aria-label="Typefreq home" data-i18n-aria="brandHomeLabel">
+          <span class="brand-mark">t</span>
+          <span>Typefreq</span>
         </a>
         <span id="connection-badge" class="status-pill checking" data-i18n="statusChecking">checking local service</span>
         <label class="language-control" for="language-select">
@@ -119,7 +119,7 @@ const defaultDescription = 'Open the public typefreq web UI. It displays local t
         <section id="setup-view" class="setup-view">
           <div class="setup-intro">
             <p id="intro-eyebrow" class="eyebrow" data-i18n="setupEyebrow">Local service not detected</p>
-            <h1 id="intro-title" data-i18n="setupTitle">Install typefreq, then this page becomes your dashboard.</h1>
+            <h1 id="intro-title" data-i18n="setupTitle">Install Typefreq, then this page becomes your dashboard.</h1>
             <p class="lead">
               <span id="intro-lead-before" data-i18n="setupLeadBefore">This public page reads the desktop service running on your own Ubuntu machine at </span><code id="local-api-label">127.0.0.1:8788</code><span id="intro-lead-after" data-i18n="setupLeadAfter">. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.</span>
             </p>
@@ -149,7 +149,7 @@ const defaultDescription = 'Open the public typefreq web UI. It displays local t
                 <button id="w2l-check-btn" class="btn" type="button" data-i18n="w2lCheck">Check</button>
               </div>
               <div class="button-row">
-                <button id="w2l-install-btn" class="btn primary" type="button" data-i18n="w2lInstall">Install typefreq</button>
+                <button id="w2l-install-btn" class="btn primary" type="button" data-i18n="w2lInstall">Install Typefreq</button>
                 <a id="w2l-get-link" class="btn" href="https://web2local-bridge.lue-app.com/" target="_blank" rel="noopener noreferrer" hidden data-i18n="w2lGet">Get web2local</a>
               </div>
               <p id="w2l-message" class="small-note"></p>
@@ -202,9 +202,9 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         en: {
           htmlLang: 'en',
           locale: 'en-US',
-          metaTitle: 'typefreq - typing analytics',
-          metaDescription: 'Open the public typefreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.',
-          brandHomeLabel: 'typefreq home',
+          metaTitle: 'Typefreq - typing analytics',
+          metaDescription: 'Open the public Typefreq web UI. It displays local typing analytics when the desktop service is installed, and shows setup guidance when it is not.',
+          brandHomeLabel: 'Typefreq home',
           statusChecking: 'checking local service',
           languageLabel: 'Language',
           languageEnglish: 'English',
@@ -238,11 +238,11 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           addWordPlaceholder: 'Add a word',
           add: 'Add',
           setupEyebrow: 'Local service not detected',
-          setupTitle: 'Install typefreq, then this page becomes your dashboard.',
+          setupTitle: 'Install Typefreq, then this page becomes your dashboard.',
           setupLeadBefore: 'This public page reads the desktop service running on your own Ubuntu machine at ',
           setupLeadAfter: '. If the service is installed and running on the selected port, your data appears here automatically. If it is not installed yet, follow the steps below.',
           setupConnectedEyebrow: 'Local service connected',
-          setupConnectedTitle: 'Your typefreq dashboard is reading your local service.',
+          setupConnectedTitle: 'Your Typefreq dashboard is reading your local service.',
           setupConnectedLeadBefore: 'This public page is reading the desktop service running on your own Ubuntu machine at ',
           setupConnectedLeadAfter: '. Your typing data stays on this machine, and the dashboard below updates automatically.',
           w2lEyebrow: 'No terminal path',
@@ -251,7 +251,7 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           w2lBodyAfter: '? It can write and run a configured installer after you approve it. If first-time sudo setup is needed, use the terminal installer below.',
           w2lPortLabel: 'web2local port',
           w2lCheck: 'Check',
-          w2lInstall: 'Install typefreq',
+          w2lInstall: 'Install Typefreq',
           w2lGet: 'Get web2local',
           w2lChecking: 'checking web2local',
           w2lAbsent: 'web2local not detected',
@@ -264,9 +264,9 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           w2lHintAbsent: 'Not detected on port {port}. Start web2local, or set its port above and check again.',
           w2lApprove: 'Approve writing and running the installer in web2local.',
           w2lInstallingMsg: 'Installer started through web2local. This can take a few minutes.',
-          w2lInstalled: 'typefreq is running on {port}.',
+          w2lInstalled: 'Typefreq is running on {port}.',
           w2lDenied: 'Install was denied in web2local.',
-          w2lApprovalTimeout: 'Timed out waiting for web2local approval. Approve faster, or click Install typefreq again.',
+          w2lApprovalTimeout: 'Timed out waiting for web2local approval. Approve faster, or click Install Typefreq again.',
           w2lOpaqueOrigin: 'Open this page over http(s) to use web2local. file:// pages cannot start local commands.',
           w2lNoBash: 'web2local could not find bash to run the installer.',
           w2lHashUnavailable: 'This browser cannot compute the installer hash in this context. Open the HTTPS site and try again.',
@@ -317,9 +317,9 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         zh: {
           htmlLang: 'zh-CN',
           locale: 'zh-CN',
-          metaTitle: 'typefreq - 打字统计',
-          metaDescription: '打开 typefreq 公共网页界面。安装桌面服务后，它会显示本机打字统计；未安装时则显示安装指引。',
-          brandHomeLabel: 'typefreq 首页',
+          metaTitle: 'Typefreq - 打字统计',
+          metaDescription: '打开 Typefreq 公共网页界面。安装桌面服务后，它会显示本机打字统计；未安装时则显示安装指引。',
+          brandHomeLabel: 'Typefreq 首页',
           statusChecking: '正在检查本地服务',
           languageLabel: '语言',
           languageEnglish: 'English',
@@ -353,11 +353,11 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           addWordPlaceholder: '添加一个词',
           add: '添加',
           setupEyebrow: '未检测到本地服务',
-          setupTitle: '安装 typefreq 后，此页面会变成你的仪表盘。',
+          setupTitle: '安装 Typefreq 后，此页面会变成你的仪表盘。',
           setupLeadBefore: '此公共页面会读取你自己的 Ubuntu 机器上运行的桌面服务：',
           setupLeadAfter: '。如果服务已安装并在所选端口运行，你的数据会自动显示在这里。如果还未安装，请按下面步骤操作。',
           setupConnectedEyebrow: '本地服务已连接',
-          setupConnectedTitle: '你的 typefreq 仪表盘正在读取本地服务。',
+          setupConnectedTitle: '你的 Typefreq 仪表盘正在读取本地服务。',
           setupConnectedLeadBefore: '此公共页面正在读取你自己的 Ubuntu 机器上运行的桌面服务：',
           setupConnectedLeadAfter: '。打字数据会保留在本机，下面的仪表盘会自动更新。',
           w2lEyebrow: '无需终端的路径',
@@ -366,7 +366,7 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           w2lBodyAfter: ' 已在运行，此页面可以发送已配置的安装器，并在你确认后写入并运行。若首次安装需要 sudo 权限，请使用下方终端安装器。',
           w2lPortLabel: 'web2local 端口',
           w2lCheck: '检查',
-          w2lInstall: '安装 typefreq',
+          w2lInstall: '安装 Typefreq',
           w2lGet: '获取 web2local',
           w2lChecking: '正在检查 web2local',
           w2lAbsent: '未检测到 web2local',
@@ -379,9 +379,9 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           w2lHintAbsent: '未在端口 {port} 检测到。请启动 web2local，或在上方填写端口后重新检查。',
           w2lApprove: '请在 web2local 中确认写入并运行安装器。',
           w2lInstallingMsg: '安装器已通过 web2local 启动，可能需要几分钟。',
-          w2lInstalled: 'typefreq 已在 {port} 上运行。',
+          w2lInstalled: 'Typefreq 已在 {port} 上运行。',
           w2lDenied: '已在 web2local 中拒绝安装。',
-          w2lApprovalTimeout: '等待 web2local 确认超时。请尽快确认，或再次点击安装 typefreq。',
+          w2lApprovalTimeout: '等待 web2local 确认超时。请尽快确认，或再次点击安装 Typefreq。',
           w2lOpaqueOrigin: '请通过 http(s) 打开此页面才能使用 web2local；file:// 页面不能启动本地命令。',
           w2lNoBash: 'web2local 找不到 bash 来运行安装器。',
           w2lHashUnavailable: '当前浏览器环境无法计算安装器哈希。请打开 HTTPS 站点后重试。',
@@ -873,7 +873,7 @@ if command -v curl >/dev/null 2>&1; then
 elif command -v wget >/dev/null 2>&1; then
   wget -qO "$WORK_DIR/typefreq-latest.tar" "$ARCHIVE_URL"
 else
-  echo "curl or wget is required to download typefreq." >&2
+  echo "curl or wget is required to download Typefreq." >&2
   exit 1
 fi
 
