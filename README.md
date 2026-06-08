@@ -8,13 +8,37 @@ The data still stays on the user's machine. The local service binds to `127.0.0.
 
 ## Install
 
+### With web2local
+
+If [web2local](https://web2local-bridge.lue-app.com/) is running, open the public
+site and use **Install with web2local**. The page detects web2local, adds the
+current site origin to web2local's graylist, then calls web2local's `/deploy`
+with a generated installer script. web2local shows the script filename, SHA-256,
+destination, and `bash` command before it writes and runs anything.
+
+The web2local installer downloads the source package, extracts app files to:
+
+```text
+~/.local/lib/typefreq
+```
+
+and runs `install.sh` with the selected local service port and CORS origins.
+Because web2local commands do not have terminal stdin, this path does not try to
+request a sudo password. If Ubuntu packages or `input` group membership still
+need first-time setup, use the configured terminal installer below once.
+
+### Terminal installer
+
 Download the configured installer from the public site, then run it:
 
 ```bash
 bash typefreq-install-8788.sh
 ```
 
-The configured installer downloads the package and passes the selected port and the current public site origin to `install.sh`, so the local service allows the deployed Cloudflare page to read it.
+The configured installer downloads the package to
+`~/.local/lib/typefreq` and passes the selected port and the current
+public site origin to `install.sh`, so the local service allows the deployed
+Cloudflare page to read it.
 
 You can also download the source package directly, extract it, and run the installer:
 
