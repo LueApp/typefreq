@@ -11,13 +11,14 @@ Run with:  python -m typefreq.app
 """
 from __future__ import annotations
 
+import json
 import logging
 import signal
 import sys
 import threading
 from threading import Lock
 
-from flask import Flask, jsonify, make_response, render_template, request
+from flask import Flask, Response, jsonify, make_response, render_template, request
 from werkzeug.serving import make_server
 
 import time
@@ -35,9 +36,12 @@ from .config import (
 )
 from .filters import normalize
 from .ime import IMEMonitor
+from .input_recorder import InputRecorder
 from .locker import LockerMonitor
+from .mouse import MouseMonitor
 from .overlay import Overlay
 from .polkit import PolkitMonitor
+from .service_control import ServiceController
 from .spellcheck import SpellNotifier
 from .tracker import Tracker
 
@@ -46,6 +50,7 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s: %(message)s",
 )
 log = logging.getLogger("typefreq")
+INPUT_RECORDER_META_KEY = "input_recorder_enabled"
 
 
 class Engine:
@@ -67,12 +72,19 @@ class Engine:
         }
         self.spell = SpellNotifier(custom_words=self.custom_words)
         self.overlay = Overlay(caret_tracker=self.caret)
+        self.input_recorder = InputRecorder()
+        self.input_recorder.set_enabled(
+            db.get_meta(self._conn, INPUT_RECORDER_META_KEY, "0") == "1"
+        )
+        self.mouse = MouseMonitor(self.input_recorder)
+        self.service_controller = ServiceController()
         self.tracker = Tracker(
             on_word=self._on_word,
             on_backspace=self._on_backspace,
             ime_monitor=self.ime,
             locker_monitor=self.locker,
             polkit_monitor=self.polkit,
+            input_recorder=self.input_recorder,
         )
         # Recently-recorded typos that could still be retracted. Each entry
         # is (monotonic_at_record, db_ts, word, suggestion). Ordered by time
@@ -83,6 +95,31 @@ class Engine:
         # Stat: how many typos were retracted by a quick backspace.
         self.typos_retracted = 0
         log.info("loaded %d custom word(s) from DB", len(self.custom_words))
+
+    def set_input_recording_enabled(self, enabled: bool) -> dict:
+        enabled = bool(enabled)
+        if enabled:
+            self.input_recorder.set_enabled(True)
+            self.input_recorder.record(
+                "system", "input_recording_enabled", {"enabled": True},
+            )
+        else:
+            self.input_recorder.record(
+                "system", "input_recording_enabled", {"enabled": False},
+            )
+            self.input_recorder.set_enabled(False)
+        with self._db_lock:
+            db.set_meta(self._conn, INPUT_RECORDER_META_KEY, "1" if enabled else "0")
+        return self.input_recorder_state()
+
+    def input_recorder_state(self) -> dict:
+        snap = self.input_recorder.snapshot()
+        return {
+            "enabled": snap["enabled"],
+            "count": snap["count"],
+            "limit": snap["limit"],
+            "max_seq": snap["max_seq"],
+        }
 
     # --- custom-words API surface (called from Flask handlers) ----------
 
@@ -126,6 +163,12 @@ class Engine:
             if misspelled and suggestion:
                 db.record_typo(self._conn, word, suggestion, ts=ts)
         if misspelled and suggestion:
+            self.input_recorder.record(
+                "engine",
+                "typo_recorded",
+                {"word": word, "suggestion": suggestion, "ts": ts},
+            )
+        if misspelled and suggestion:
             with self._retract_lock:
                 self._recent_typos.append((time.monotonic(), ts, word, suggestion))
                 self._prune_recent_typos_locked()
@@ -165,10 +208,16 @@ class Engine:
         if retracted:
             self.typos_retracted += 1
             self.overlay.dismiss()
+            self.input_recorder.record(
+                "engine",
+                "typo_retracted",
+                {"word": word, "suggestion": suggestion, "ts": ts},
+            )
             log.info("retracted typo: %s -> %s", word, suggestion)
 
     def shutdown(self) -> None:
         self.tracker.stop()
+        self.mouse.stop()
         self.overlay.stop()
         self.caret.stop()
         self.ime.shutdown()
@@ -242,6 +291,8 @@ def make_app(engine: Engine) -> Flask:
             polkit_skipped=engine.tracker.polkit_skipped,
             idle_resets=engine.tracker.idle_resets,
             skipped_after_nav=engine.tracker.skipped_after_nav,
+            input_recording_enabled=engine.input_recorder.enabled,
+            input_recording_count=engine.input_recorder.snapshot()["count"],
             typos_retracted=engine.typos_retracted,
             toasts_dismissed=engine.overlay.toasts_dismissed,
             ime_active=ime["available"],
@@ -265,6 +316,43 @@ def make_app(engine: Engine) -> Flask:
             toasts_via_mouse=engine.overlay.toasts_via_mouse,
             db_path=str(DB_PATH),
         )
+
+    @app.get("/api/debug/input-recorder")
+    def api_input_recorder_state():
+        return jsonify(engine.input_recorder_state())
+
+    @app.post("/api/debug/input-recorder")
+    def api_set_input_recorder():
+        body = request.get_json(silent=True) or {}
+        if "enabled" not in body:
+            return jsonify(error="missing 'enabled'"), 400
+        return jsonify(engine.set_input_recording_enabled(bool(body["enabled"])))
+
+    @app.post("/api/debug/input-recorder/clear")
+    def api_clear_input_recorder():
+        engine.input_recorder.clear()
+        return jsonify(engine.input_recorder_state())
+
+    @app.post("/api/service/restart")
+    def api_restart_service():
+        try:
+            result = engine.service_controller.restart()
+        except Exception as e:
+            log.exception("service restart scheduling failed")
+            return jsonify(ok=False, error=str(e)), 500
+        return jsonify(ok=True, **result), 202
+
+    @app.get("/api/debug/input-recorder/export")
+    def api_export_input_recorder():
+        payload = engine.input_recorder.export_payload()
+        response = Response(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            mimetype="application/json",
+        )
+        response.headers["Content-Disposition"] = (
+            'attachment; filename="typefreq-input-debug.json"'
+        )
+        return response
 
     @app.post("/api/pause")
     def api_pause():
@@ -392,6 +480,7 @@ def main() -> int:
     # the guards' first readings in place.
     engine.locker.start()
     engine.polkit.start()
+    engine.mouse.start()
 
     # --- start Flask via werkzeug make_server (so we can shut it down cleanly) ---
     server = make_server(HTTP_HOST, HTTP_PORT, make_app(engine), threaded=True)

@@ -215,6 +215,21 @@
   .feedback { color: var(--muted); font-size: 12px; margin-top: 8px; min-height: 1em; }
   .feedback.ok { color: var(--ok); }
   .feedback.err { color: var(--danger); }
+  .toggle-row {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--muted); font-size: 12px; font-weight: 600;
+  }
+  .toggle-row input { width: 16px; height: 16px; accent-color: var(--ok); }
+  .debug-actions {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  }
+  .debug-count { color: var(--muted); font-size: 12px; margin-right: auto; }
+  .header-feedback {
+    color: var(--muted); font-size: 12px; min-height: 1em;
+  }
+  .header-feedback.ok { color: var(--ok); }
+  .header-feedback.err { color: var(--danger); }
+  .small-note { color: var(--muted); font-size: 12px; line-height: 1.45; margin: 10px 0 0; }
   @media (max-width: 900px) {
     main { grid-template-columns: 1fr; }
     .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -248,6 +263,8 @@
   <span id="status-badge" class="badge">…</span>
   <span class="spacer"></span>
   <span id="db-path"></span>
+  <span id="service-feedback" class="header-feedback"></span>
+  <button id="service-restart-btn" type="button">Restart service</button>
   <button id="pause-btn" type="button">Pause</button>
 </header>
 
@@ -290,6 +307,21 @@
       <button id="custom-add" type="button">Add</button>
     </div>
     <div id="custom-feedback" class="feedback"></div>
+  </section>
+
+  <section class="panel full">
+    <h2>Input debug log</h2>
+    <label class="toggle-row">
+      <input id="input-debug-toggle" type="checkbox">
+      <span>Record keyboard and mouse actions</span>
+    </label>
+    <div class="debug-actions">
+      <span id="input-debug-count" class="debug-count">0 events</span>
+      <button id="input-debug-download" type="button">Download JSON</button>
+      <button id="input-debug-clear" type="button">Clear</button>
+    </div>
+    <p class="small-note">Disabled by default. Do not enable while typing passwords or other sensitive text.</p>
+    <div id="input-debug-feedback" class="feedback"></div>
   </section>
 </main>
 
@@ -416,6 +448,25 @@ function setFeedback(text, kind = '') {
   if (text) setTimeout(() => { if (el.textContent === text) { el.textContent = ''; el.className = 'feedback'; } }, 4000);
 }
 
+function setDebugFeedback(text, kind = '') {
+  const el = document.getElementById('input-debug-feedback');
+  el.textContent = text;
+  el.className = 'feedback' + (kind ? ' ' + kind : '');
+}
+
+function setServiceFeedback(text, kind = '') {
+  const el = document.getElementById('service-feedback');
+  el.textContent = text;
+  el.className = 'header-feedback' + (kind ? ' ' + kind : '');
+}
+
+function renderInputRecorder(state) {
+  const enabled = Boolean(state?.input_recording_enabled ?? state?.enabled);
+  const count = Number(state?.input_recording_count ?? state?.count ?? 0);
+  document.getElementById('input-debug-toggle').checked = enabled;
+  document.getElementById('input-debug-count').textContent = `${count.toLocaleString()} event${count === 1 ? '' : 's'}`;
+}
+
 async function addCustomWord(word) {
   if (!word) return;
   try {
@@ -470,6 +521,7 @@ async function refreshStatus() {
   document.getElementById('pause-btn').textContent = s.paused ? 'Resume' : 'Pause';
   document.getElementById('db-path').textContent = s.db_path;
   document.getElementById('stat-events').textContent = s.events_seen.toLocaleString();
+  renderInputRecorder(s);
 }
 
 async function refreshToday() {
@@ -519,6 +571,71 @@ window.addEventListener('resize', () => {
 document.getElementById('pause-btn').addEventListener('click', async () => {
   await fetch('/api/pause', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
   refreshStatus();
+});
+
+document.getElementById('service-restart-btn').addEventListener('click', async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  setServiceFeedback('scheduling restart...');
+  try {
+    const r = await fetch('/api/service/restart', { method: 'POST' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `${r.status} ${r.statusText}`);
+    setServiceFeedback('restart scheduled; dashboard may disconnect briefly', 'ok');
+    setTimeout(refreshStatus, 2500);
+  } catch (e) {
+    setServiceFeedback('restart failed: ' + e.message, 'err');
+  } finally {
+    setTimeout(() => { button.disabled = false; }, 2500);
+  }
+});
+
+document.getElementById('input-debug-toggle').addEventListener('change', async (event) => {
+  try {
+    const r = await fetch('/api/debug/input-recorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: event.target.checked }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'failed');
+    renderInputRecorder(data);
+    setDebugFeedback(event.target.checked ? 'input recording enabled' : 'input recording disabled', 'ok');
+  } catch (e) {
+    event.target.checked = !event.target.checked;
+    setDebugFeedback('input debug action failed: ' + e.message, 'err');
+  }
+});
+
+document.getElementById('input-debug-clear').addEventListener('click', async () => {
+  try {
+    const r = await fetch('/api/debug/input-recorder/clear', { method: 'POST' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'failed');
+    renderInputRecorder(data);
+    setDebugFeedback('input log cleared', 'ok');
+  } catch (e) {
+    setDebugFeedback('input debug action failed: ' + e.message, 'err');
+  }
+});
+
+document.getElementById('input-debug-download').addEventListener('click', async () => {
+  try {
+    const r = await fetch('/api/debug/input-recorder/export');
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `typefreq-input-debug-${Date.now()}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setDebugFeedback('input log downloaded', 'ok');
+  } catch (e) {
+    setDebugFeedback('input debug action failed: ' + e.message, 'err');
+  }
 });
 
 const customInput = document.getElementById('custom-input');

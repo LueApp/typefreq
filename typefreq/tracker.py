@@ -65,6 +65,7 @@ class Tracker:
         ime_monitor=None,
         locker_monitor=None,
         polkit_monitor=None,
+        input_recorder=None,
     ) -> None:
         self.on_word = on_word
         self.on_raw_word = on_raw_word or (lambda _w: None)
@@ -77,6 +78,7 @@ class Tracker:
         # callbacks. Currently: screen lockers + polkit/sudo/askpass.
         self._locker = locker_monitor  # may be None
         self._polkit = polkit_monitor  # may be None
+        self._input_recorder = input_recorder  # may be None
         self._secure_guards = [
             g for g in (locker_monitor, polkit_monitor) if g is not None
         ]
@@ -212,6 +214,14 @@ class Tracker:
     def _set_active_keyboard_paths(self, devices: dict[str, evdev.InputDevice]) -> None:
         self.active_keyboard_paths = sorted(devices)
 
+    def _record_input(self, source: str, action: str, data: dict | None = None) -> None:
+        if self._input_recorder is None:
+            return
+        try:
+            self._input_recorder.record(source, action, data or {})
+        except Exception:
+            log.exception("input recorder failed")
+
     # --- event handling --------------------------------------------------
 
     def _handle_key(self, ev: evdev.KeyEvent) -> None:
@@ -226,6 +236,16 @@ class Tracker:
         locker_active = self._locker is not None and self._locker.is_active()
         polkit_active = self._polkit is not None and self._polkit.is_active()
         if locker_active or polkit_active:
+            self._record_input(
+                "tracker",
+                "secure_context_drop",
+                {
+                    "locker_active": locker_active,
+                    "polkit_active": polkit_active,
+                    "buffer_len": len(self._buf),
+                    "mod_count": len(self._mods),
+                },
+            )
             if self._buf:
                 self._buf.clear()
             self._suppress_current_token = False
@@ -246,6 +266,20 @@ class Tracker:
             return
 
         state = ev.keystate  # 0=up, 1=down, 2=hold
+        key_action = {0: "key_up", 1: "key_down", 2: "key_hold"}.get(state, "key")
+        self._record_input(
+            "keyboard",
+            key_action,
+            {
+                "key": keyname,
+                "state": state,
+                "mods": sorted(self._mods),
+                "caps_lock": self._caps_lock,
+                "paused": self.paused,
+                "buffer": "".join(self._buf),
+                "buffer_len": len(self._buf),
+            },
+        )
 
         # Track modifiers on key-down and key-up regardless of paused state.
         if keyname in keymap.SHIFT_KEYS or keyname in keymap.CTRL_KEYS \
@@ -275,9 +309,11 @@ class Tracker:
             self.toggle_paused()
             self._buf.clear()
             self._suppress_current_token = False
+            self._record_input("tracker", "pause_hotkey", {"paused": self.paused})
             return
 
         if self.paused:
+            self._record_input("tracker", "paused_drop", {"key": keyname})
             return
 
         # If an IME is currently composing (e.g. fcitx5 in pinyin mode),
@@ -288,6 +324,7 @@ class Tracker:
                 self._buf.clear()
             self._suppress_current_token = False
             self.ime_skipped += 1
+            self._record_input("tracker", "ime_drop", {"key": keyname})
             return
 
         # Discard stale buffer if too much time has passed since the last
@@ -296,6 +333,8 @@ class Tracker:
         # otherwise leave fragments like "ver" in the buffer and corrupt
         # the next word the user types.
         idle_reset = self._apply_idle_reset(time.monotonic())
+        if idle_reset:
+            self._record_input("tracker", "idle_reset", {"key": keyname})
 
         # Ignore chords with Ctrl/Alt/Meta — those are shortcuts, not typed words.
         if self._has_ctrl() or self._has_alt() or self._has_meta():
@@ -304,6 +343,7 @@ class Tracker:
             if self._has_ctrl() and keyname in keymap.CANCEL_KEYS:
                 self._buf.clear()
                 self._suppress_current_token = False
+                self._record_input("tracker", "cancel_shortcut", {"key": keyname})
                 return
             # Ctrl+Backspace (and Alt+Backspace in some editors) means
             # "delete word backward". The user is REMOVING the in-progress
@@ -314,6 +354,7 @@ class Tracker:
             if keyname in keymap.BACKSPACE_KEYS:
                 self._buf.clear()
                 self._suppress_current_token = False
+                self._record_input("tracker", "shortcut_backspace", {"key": keyname})
                 try:
                     self.on_backspace()
                 except Exception:
@@ -326,14 +367,21 @@ class Tracker:
                 self._flush()
                 self._suppress_current_token = False
                 self._skip_next_word = True
+                self._record_input("tracker", "word_nav", {"key": keyname})
                 return
             self._flush()
             self._suppress_current_token = False
+            self._record_input("tracker", "shortcut_flush", {"key": keyname})
             return
 
         if keyname in keymap.BACKSPACE_KEYS:
             if self._buf:
                 self._buf.pop()
+            self._record_input(
+                "tracker",
+                "backspace",
+                {"buffer": "".join(self._buf), "buffer_len": len(self._buf)},
+            )
             # Any backspace signals "I'm fixing something" — let the engine
             # cancel any pending typo notifications.
             try:
@@ -345,11 +393,13 @@ class Tracker:
         if keyname in keymap.COMPLETION_KEYS:
             self._buf.clear()
             self._suppress_current_token = False
+            self._record_input("tracker", "completion_clear", {"key": keyname})
             return
 
         if keyname in keymap.BOUNDARY_KEYS:
             self._flush()
             self._suppress_current_token = False
+            self._record_input("tracker", "boundary", {"key": keyname})
             return
 
         ch = keymap.char_for(keyname, shift=self._has_shift(), caps=self._caps_lock)
@@ -357,11 +407,17 @@ class Tracker:
             # Unknown/non-character key — close the current word.
             self._flush()
             self._suppress_current_token = False
+            self._record_input("tracker", "unknown_key_flush", {"key": keyname})
             return
 
         if idle_reset:
             self._suppress_current_token = True
         self._buf.append(ch)
+        self._record_input(
+            "tracker",
+            "char_buffered",
+            {"key": keyname, "char": ch, "buffer": "".join(self._buf)},
+        )
 
     def _flush(self) -> None:
         if not self._buf:
@@ -370,6 +426,7 @@ class Tracker:
         self._buf.clear()
         if self._suppress_current_token:
             self._suppress_current_token = False
+            self._record_input("tracker", "word_suppressed", {"raw": raw})
             return
         # Skip flag is consumed by any non-empty flush, whether or not the
         # word would have passed the normalize filter — the point is to
@@ -377,15 +434,23 @@ class Tracker:
         if self._skip_next_word:
             self._skip_next_word = False
             self.skipped_after_nav += 1
+            self._record_input("tracker", "word_skipped_after_nav", {"raw": raw})
             return
         self.on_raw_word(raw)
         norm = normalize(raw)
         if norm is not None:
             self.words_emitted += 1
+            self._record_input(
+                "tracker",
+                "word_emitted",
+                {"raw": raw, "normalized": norm},
+            )
             try:
                 self.on_word(norm)
             except Exception:
                 log.exception("on_word handler raised")
+        else:
+            self._record_input("tracker", "word_rejected", {"raw": raw})
 
     def _apply_idle_reset(self, now: float) -> bool:
         """If too much time has passed since the last keystroke, discard the

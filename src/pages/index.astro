@@ -113,6 +113,41 @@ const defaultDescription = 'Open the public Typefreq web UI. It displays local t
               </form>
               <p id="custom-feedback" class="feedback"></p>
             </section>
+
+            <section class="panel wide service-actions-panel">
+              <div class="panel-head">
+                <div>
+                  <h2 data-i18n="serviceActions">Service actions</h2>
+                  <span class="panel-caption" data-i18n="serviceActionsCaption">Restart the local service, or reinstall the current release on this port.</span>
+                </div>
+              </div>
+              <div class="service-actions">
+                <button id="service-restart-btn" class="btn" type="button" data-i18n="restartService">Restart service</button>
+                <button id="service-reinstall-btn" class="btn primary" type="button" data-i18n="reinstallService">Reinstall service</button>
+              </div>
+              <p class="small-note" data-i18n="serviceActionsNote">Reinstall uses web2local when it is running; otherwise this page downloads a configured installer.</p>
+              <p id="service-action-feedback" class="feedback"></p>
+            </section>
+
+            <section class="panel wide">
+              <div class="panel-head">
+                <div>
+                  <h2 data-i18n="inputDebugLog">Input debug log</h2>
+                  <span class="panel-caption" data-i18n="inputDebugCaption">Temporarily record keyboard and mouse actions for debugging typo detection.</span>
+                </div>
+                <label class="toggle-row">
+                  <input id="input-debug-toggle" type="checkbox" />
+                  <span data-i18n="inputDebugRecord">Record</span>
+                </label>
+              </div>
+              <div class="debug-actions">
+                <span id="input-debug-count" class="panel-caption">0 events</span>
+                <button id="input-debug-download" class="btn" type="button" data-i18n="downloadJson">Download JSON</button>
+                <button id="input-debug-clear" class="btn" type="button" data-i18n="clearLog">Clear</button>
+              </div>
+              <p class="small-note" data-i18n="inputDebugPrivacy">Disabled by default. Do not enable while typing passwords or other sensitive text.</p>
+              <p id="input-debug-feedback" class="feedback"></p>
+            </section>
           </div>
         </section>
 
@@ -235,6 +270,32 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           recentTypos: 'Recent typos',
           customWords: 'Custom words',
           customWordsCaption: 'Words that should not be flagged as typos.',
+          serviceActions: 'Service actions',
+          serviceActionsCaption: 'Restart the local service, or reinstall the current release on this port.',
+          restartService: 'Restart service',
+          reinstallService: 'Reinstall service',
+          serviceActionsNote: 'Reinstall uses web2local when it is running; otherwise this page downloads a configured installer.',
+          serviceRestarting: 'Scheduling service restart...',
+          serviceRestartScheduled: 'Restart scheduled. The dashboard may disconnect briefly.',
+          serviceRestartFailed: 'Could not restart the service.',
+          serviceReinstallChecking: 'Checking web2local before reinstall...',
+          serviceReinstallDownloaded: 'web2local is not ready; downloaded a configured installer for port {port}.',
+          serviceReinstallApprove: 'Approve the reinstall in web2local.',
+          serviceReinstallInstalling: 'Reinstall started through web2local. This can take a few minutes.',
+          serviceReinstallFailed: 'Reinstall failed: {msg}',
+          inputDebugLog: 'Input debug log',
+          inputDebugCaption: 'Temporarily record keyboard and mouse actions for debugging typo detection.',
+          inputDebugRecord: 'Record',
+          inputDebugPrivacy: 'Disabled by default. Do not enable while typing passwords or other sensitive text.',
+          downloadJson: 'Download JSON',
+          clearLog: 'Clear',
+          debugEventsOne: '{count} event',
+          debugEventsMany: '{count} events',
+          debugEnabled: 'Input recording enabled.',
+          debugDisabled: 'Input recording disabled.',
+          debugCleared: 'Input log cleared.',
+          debugDownloaded: 'Input log downloaded.',
+          debugFailed: 'Input debug action failed.',
           addWordPlaceholder: 'Add a word',
           add: 'Add',
           setupEyebrow: 'Local service not detected',
@@ -350,6 +411,32 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
           recentTypos: '最近错词',
           customWords: '自定义词',
           customWordsCaption: '这些词不会被标记为错词。',
+          serviceActions: '服务操作',
+          serviceActionsCaption: '重启本地服务，或在当前端口重新安装当前版本。',
+          restartService: '重启服务',
+          reinstallService: '重新安装服务',
+          serviceActionsNote: '重新安装会优先使用正在运行的 web2local；否则此页面会下载已配置安装器。',
+          serviceRestarting: '正在安排服务重启...',
+          serviceRestartScheduled: '已安排重启，仪表盘可能会短暂断开。',
+          serviceRestartFailed: '无法重启服务。',
+          serviceReinstallChecking: '正在检查 web2local 以重新安装...',
+          serviceReinstallDownloaded: 'web2local 尚未就绪；已下载端口 {port} 的已配置安装器。',
+          serviceReinstallApprove: '请在 web2local 中确认重新安装。',
+          serviceReinstallInstalling: '已通过 web2local 启动重新安装，可能需要几分钟。',
+          serviceReinstallFailed: '重新安装失败：{msg}',
+          inputDebugLog: '输入调试日志',
+          inputDebugCaption: '临时记录键盘和鼠标动作，用来排查错词检测问题。',
+          inputDebugRecord: '记录',
+          inputDebugPrivacy: '默认关闭。输入密码或其他敏感文本时不要启用。',
+          downloadJson: '下载 JSON',
+          clearLog: '清空',
+          debugEventsOne: '{count} 个事件',
+          debugEventsMany: '{count} 个事件',
+          debugEnabled: '输入记录已开启。',
+          debugDisabled: '输入记录已关闭。',
+          debugCleared: '输入日志已清空。',
+          debugDownloaded: '输入日志已下载。',
+          debugFailed: '输入调试操作失败。',
           addWordPlaceholder: '添加一个词',
           add: '添加',
           setupEyebrow: '未检测到本地服务',
@@ -472,6 +559,14 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         customForm: document.getElementById('custom-form'),
         customInput: document.getElementById('custom-input'),
         customFeedback: document.getElementById('custom-feedback'),
+        serviceRestart: document.getElementById('service-restart-btn'),
+        serviceReinstall: document.getElementById('service-reinstall-btn'),
+        serviceActionFeedback: document.getElementById('service-action-feedback'),
+        inputDebugToggle: document.getElementById('input-debug-toggle'),
+        inputDebugCount: document.getElementById('input-debug-count'),
+        inputDebugDownload: document.getElementById('input-debug-download'),
+        inputDebugClear: document.getElementById('input-debug-clear'),
+        inputDebugFeedback: document.getElementById('input-debug-feedback'),
         leaderboardCaption: document.getElementById('leaderboard-caption'),
       };
 
@@ -486,6 +581,7 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
       let w2lBusy = false;
       let w2lMessageKey = '';
       let w2lMessageValues = null;
+      let serviceActionBusy = false;
       let currentLanguage = loadLanguage();
 
       function esc(value) {
@@ -752,9 +848,36 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         });
       }
 
+      function renderInputRecorder(state) {
+        const enabled = Boolean(state?.input_recording_enabled ?? state?.enabled);
+        const count = Number(state?.input_recording_count ?? state?.count ?? 0);
+        els.inputDebugToggle.checked = enabled;
+        els.inputDebugCount.textContent = phrase(count === 1 ? 'debugEventsOne' : 'debugEventsMany', { count: fmt(count) });
+      }
+
       function setFeedback(message, kind = '') {
         els.customFeedback.textContent = message;
         els.customFeedback.className = `feedback ${kind}`.trim();
+      }
+
+      function setDebugFeedback(message, kind = '') {
+        els.inputDebugFeedback.textContent = message;
+        els.inputDebugFeedback.className = `feedback ${kind}`.trim();
+      }
+
+      function setServiceFeedback(message, kind = '') {
+        els.serviceActionFeedback.textContent = message;
+        els.serviceActionFeedback.className = `feedback ${kind}`.trim();
+      }
+
+      function syncServiceActionButtons() {
+        els.serviceRestart.disabled = serviceActionBusy;
+        els.serviceReinstall.disabled = serviceActionBusy || w2lBusy;
+      }
+
+      function setServiceActionBusy(busy) {
+        serviceActionBusy = Boolean(busy);
+        syncServiceActionButtons();
       }
 
       async function addCustomWord(word) {
@@ -794,6 +917,7 @@ journalctl --user -u typefreq -n 40 --no-pager</code></pre>
         const keyboardCount = Number(status.active_keyboard_count || 0);
         setConnected(true, status.paused ? phrase('connectedPaused', { port: servicePort }) : phrase(keyboardCount === 1 ? 'connectedKeyboardOne' : 'connectedKeyboardMany', { port: servicePort, count: keyboardCount }));
         renderNotice(status);
+        renderInputRecorder(status);
         renderHourly(today.hourly || []);
         renderTypos(today.recent_typos || []);
         renderCustomWords(custom.words || []);
@@ -901,6 +1025,57 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
         URL.revokeObjectURL(url);
       }
 
+      async function setInputRecording(enabled) {
+        try {
+          const state = await api('/api/debug/input-recorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled }),
+          });
+          renderInputRecorder(state);
+          setDebugFeedback(enabled ? t('debugEnabled') : t('debugDisabled'), 'ok');
+          await refreshData();
+        } catch {
+          els.inputDebugToggle.checked = !enabled;
+          setDebugFeedback(t('debugFailed'), 'err');
+        }
+      }
+
+      async function clearInputLog() {
+        try {
+          const state = await api('/api/debug/input-recorder/clear', { method: 'POST' });
+          renderInputRecorder(state);
+          setDebugFeedback(t('debugCleared'), 'ok');
+        } catch {
+          setDebugFeedback(t('debugFailed'), 'err');
+        }
+      }
+
+      async function downloadInputLog() {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+          const response = await fetch(`${localApi()}/api/debug/input-recorder/export`, {
+            mode: 'cors',
+            signal: controller.signal,
+          });
+          clearTimeout(timer);
+          if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `typefreq-input-debug-${Date.now()}.json`;
+          document.body.append(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+          setDebugFeedback(t('debugDownloaded'), 'ok');
+        } catch {
+          setDebugFeedback(t('debugFailed'), 'err');
+        }
+      }
+
       function sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
       }
@@ -932,6 +1107,7 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
         els.w2lCheck.disabled = busy;
         els.w2lInstall.disabled = w2lBusy || !canInstall;
         els.w2lGet.hidden = !(state === 'absent');
+        syncServiceActionButtons();
       }
 
       function setW2lMessage(key, values = null) {
@@ -976,6 +1152,16 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
         try { data = await response.json(); } catch { /* tolerate empty/non-JSON */ }
         if (!response.ok) throw new Error(data.error || `${response.status} ${response.statusText}`);
         return data;
+      }
+
+      async function web2localReady() {
+        if (!w2lOriginUsable()) return false;
+        try {
+          const response = await w2lFetch('/status');
+          return response.ok;
+        } catch {
+          return false;
+        }
       }
 
       async function refreshW2lCard() {
@@ -1027,16 +1213,26 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
         return false;
       }
 
-      function handleW2lError(error) {
+      function describeW2lError(error) {
         if (error?.name === 'AbortError') {
-          setW2lMessage('w2lApprovalTimeout');
-          return;
+          return { key: 'w2lApprovalTimeout' };
         }
+        if (error?.code === 'hashUnavailable') return { key: 'w2lHashUnavailable' };
         const message = error?.message || String(error);
-        if (/denied/i.test(message)) setW2lMessage('w2lDenied');
-        else if (/bash|command not found|executable/i.test(message)) setW2lMessage('w2lNoBash');
-        else if (/origin|whitelist|graylist/i.test(message)) setW2lMessage('w2lOriginRejected');
-        else setW2lMessage('w2lError', { msg: message });
+        if (/denied/i.test(message)) return { key: 'w2lDenied' };
+        if (/bash|command not found|executable/i.test(message)) return { key: 'w2lNoBash' };
+        if (/origin|whitelist|graylist/i.test(message)) return { key: 'w2lOriginRejected' };
+        return { key: 'w2lError', values: { msg: message } };
+      }
+
+      function handleW2lError(error) {
+        const detail = describeW2lError(error);
+        setW2lMessage(detail.key, detail.values || null);
+      }
+
+      function w2lErrorText(error) {
+        const detail = describeW2lError(error);
+        return phrase(detail.key, detail.values || {});
       }
 
       function applyW2lPort() {
@@ -1049,6 +1245,24 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
         localStorage.setItem(W2L_PORT_STORAGE_KEY, String(w2lPort));
         updateW2lPortUi();
         return true;
+      }
+
+      async function deployInstallerWithWeb2Local() {
+        const source = installerScript(servicePort, { web2local: true });
+        const sha256 = await sha256Hex(source);
+        if (!sha256) {
+          const error = new Error('hash unavailable');
+          error.code = 'hashUnavailable';
+          throw error;
+        }
+        await w2lPostJson('/config/graylist', { origin: window.location.origin });
+        return await w2lPostJson('/deploy', {
+          source,
+          sha256,
+          filename: `typefreq-install-${servicePort}.sh`,
+          command: 'bash',
+          args: [],
+        }, W2L_DEPLOY_TIMEOUT_MS);
       }
 
       async function installWithWeb2Local() {
@@ -1068,21 +1282,7 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
 
         let pid = null;
         try {
-          const source = installerScript(servicePort, { web2local: true });
-          const sha256 = await sha256Hex(source);
-          if (!sha256) {
-            setW2lState('error');
-            setW2lMessage('w2lHashUnavailable');
-            return;
-          }
-          await w2lPostJson('/config/graylist', { origin: window.location.origin });
-          const deployed = await w2lPostJson('/deploy', {
-            source,
-            sha256,
-            filename: `typefreq-install-${servicePort}.sh`,
-            command: 'bash',
-            args: [],
-          }, W2L_DEPLOY_TIMEOUT_MS);
+          const deployed = await deployInstallerWithWeb2Local();
           pid = deployed.pid || null;
           setW2lState('installing');
           setW2lMessage('w2lInstallingMsg');
@@ -1106,6 +1306,48 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
         }
       }
 
+      async function restartService() {
+        if (serviceActionBusy) return;
+        setServiceActionBusy(true);
+        setServiceFeedback(t('serviceRestarting'));
+        try {
+          await api('/api/service/restart', { method: 'POST' });
+          setServiceFeedback(t('serviceRestartScheduled'), 'ok');
+          window.setTimeout(connect, 2500);
+        } catch {
+          setServiceFeedback(t('serviceRestartFailed'), 'err');
+        } finally {
+          window.setTimeout(() => setServiceActionBusy(false), 2500);
+        }
+      }
+
+      async function reinstallService() {
+        if (serviceActionBusy || w2lBusy) return;
+        if (!applyPort(els.portInput.value)) return;
+        setServiceActionBusy(true);
+        setServiceFeedback(t('serviceReinstallChecking'));
+        try {
+          if (!applyW2lPort() || !(await web2localReady())) {
+            downloadConfiguredInstaller();
+            setServiceFeedback(phrase('serviceReinstallDownloaded', { port: servicePort }), 'ok');
+            return;
+          }
+          w2lBusy = true;
+          syncServiceActionButtons();
+          setServiceFeedback(t('serviceReinstallApprove'));
+          const deployed = await deployInstallerWithWeb2Local();
+          setServiceFeedback(t('serviceReinstallInstalling'), 'ok');
+          if (deployed.pid) showW2lLog(deployed.pid).catch(() => {});
+          window.setTimeout(connect, 7000);
+        } catch (error) {
+          setServiceFeedback(phrase('serviceReinstallFailed', { msg: w2lErrorText(error) }), 'err');
+        } finally {
+          w2lBusy = false;
+          setServiceActionBusy(false);
+          renderW2lText();
+        }
+      }
+
       document.querySelectorAll('#leaderboard-tabs .tab').forEach((button) => {
         button.addEventListener('click', () => {
           activePeriod = button.dataset.period;
@@ -1120,6 +1362,8 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
       els.setupRetry.addEventListener('click', connect);
       els.downloadInstaller.addEventListener('click', downloadConfiguredInstaller);
       els.setupDownloadInstaller.addEventListener('click', downloadConfiguredInstaller);
+      els.serviceRestart.addEventListener('click', restartService);
+      els.serviceReinstall.addEventListener('click', reinstallService);
       els.w2lCheck.addEventListener('click', () => {
         if (applyW2lPort()) refreshW2lCard();
       });
@@ -1156,6 +1400,9 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
         });
         await refreshData();
       });
+      els.inputDebugToggle.addEventListener('change', () => setInputRecording(els.inputDebugToggle.checked));
+      els.inputDebugClear.addEventListener('click', clearInputLog);
+      els.inputDebugDownload.addEventListener('click', downloadInputLog);
       els.customForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const value = els.customInput.value.trim();
@@ -1171,6 +1418,7 @@ TYPEFREQ_PORT="$TYPEFREQ_PORT" TYPEFREQ_PUBLIC_SITE="$TYPEFREQ_PUBLIC_SITE" TYPE
       syncLanguageStaticText();
       updatePortUi();
       updateW2lPortUi();
+      syncServiceActionButtons();
       connect();
     </script>
   </body>

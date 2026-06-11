@@ -515,6 +515,45 @@ h3 {
   color: var(--red);
 }
 
+.toggle-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+.toggle-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green);
+}
+
+.debug-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.service-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  min-width: 0;
+}
+
+.service-actions .btn {
+  min-width: 150px;
+}
+
+.debug-actions .panel-caption {
+  margin-right: auto;
+}
+
 .add-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 import time
+import json
 from pathlib import Path
 
 # Force test DB into a tmpdir before importing the package.
@@ -15,6 +16,7 @@ os.environ["TYPEFREQ_DB"] = str(tmpdir / "test.db")
 from typefreq import db, filters  # noqa: E402
 from typefreq.caret import CaretTracker  # noqa: E402
 from typefreq.ime import IMEMonitor  # noqa: E402
+from typefreq.input_recorder import InputRecorder  # noqa: E402
 from typefreq.spellcheck import SpellNotifier  # noqa: E402
 
 errors: list[str] = []
@@ -104,7 +106,64 @@ check("second should_notify (cooldown) -> False", ok2 is False)
 for cjk in ["你好", "再見", "héllo", "naïve"]:
     check(f"filter rejects non-ASCII {cjk!r}", filters.normalize(cjk) is None)
 
-# 4c. Overlay: enqueue is thread-safe and stop() is idempotent. Don't start Tk here.
+# 4c. InputRecorder: disabled by default, bounded, clearable, JSON-safe.
+rec = InputRecorder(limit=2)
+rec.record("keyboard", "key_down", {"key": "KEY_A"})
+check("input recorder disabled by default",
+      rec.snapshot()["entries"] == [] and rec.snapshot()["count"] == 0,
+      repr(rec.snapshot()))
+rec.set_enabled(True)
+rec.record("keyboard", "key_down", {"key": "KEY_A", "nested": {"raw": object()}})
+rec.record("mouse", "mouse_click", {"button": "BTN_LEFT", "pressed": True, "pos": (10, 20)})
+rec.record("tracker", "word_emitted", {"raw": "helo", "normalized": "helo"})
+snap = rec.snapshot()
+check("input recorder keeps bounded recent entries",
+      snap["enabled"] is True and snap["count"] == 2
+      and [e["action"] for e in snap["entries"]] == ["mouse_click", "word_emitted"],
+      repr(snap))
+payload = rec.export_payload()
+try:
+    json.dumps(payload)
+    payload_json_safe = True
+except TypeError:
+    payload_json_safe = False
+check("input recorder export payload is JSON-safe",
+      payload_json_safe and payload["count"] == 2 and payload["limit"] == 2,
+      repr(payload))
+rec.clear()
+check("input recorder clear empties history",
+      rec.snapshot()["entries"] == [] and rec.snapshot()["count"] == 0,
+      repr(rec.snapshot()))
+
+# 4d. MouseMonitor event conversion: fake evdev mouse events record clicks.
+try:
+    from evdev import ecodes as _mouse_ecodes  # noqa: E402
+    from typefreq.mouse import MouseMonitor  # noqa: E402
+
+    class _FakeMouseEvent:
+        def __init__(self, event_type, code, value):
+            self.type = event_type
+            self.code = code
+            self.value = value
+
+    rec_mouse = InputRecorder(limit=10)
+    rec_mouse.set_enabled(True)
+    mouse = MouseMonitor(rec_mouse)
+    mouse._handle_event(_FakeMouseEvent(_mouse_ecodes.EV_REL, _mouse_ecodes.REL_X, 7))
+    mouse._handle_event(_FakeMouseEvent(_mouse_ecodes.EV_REL, _mouse_ecodes.REL_Y, 5))
+    mouse._handle_event(_FakeMouseEvent(_mouse_ecodes.EV_KEY, _mouse_ecodes.BTN_LEFT, 1))
+    mouse._handle_event(_FakeMouseEvent(_mouse_ecodes.EV_KEY, _mouse_ecodes.BTN_LEFT, 0))
+    mouse_entries = rec_mouse.snapshot()["entries"]
+    check("mouse monitor records button press and release",
+          [e["data"].get("pressed") for e in mouse_entries] == [True, False]
+          and all(e["source"] == "mouse" and e["action"] == "mouse_click" for e in mouse_entries)
+          and all(e["data"].get("button") == "BTN_LEFT" for e in mouse_entries)
+          and all(e["data"].get("x") == 7 and e["data"].get("y") == 5 for e in mouse_entries),
+          repr(mouse_entries))
+except ModuleNotFoundError:
+    raise
+
+# 4e. Overlay: enqueue is thread-safe and stop() is idempotent. Don't start Tk here.
 from typefreq.overlay import Overlay, _compute_origin, _monitor_containing  # noqa: E402
 
 ov = Overlay()
@@ -114,7 +173,7 @@ check("overlay queue accepted 2 items", ov._queue.qsize() == 2)
 ov.stop(); ov.stop()
 check("overlay stop is idempotent", True)
 
-# 4d. Monitor-aware positioning: simulate user's 3-monitor layout
+# 4f. Monitor-aware positioning: simulate user's 3-monitor layout
 # (eDP-1 at +2304+2304 2560x1600, DP-5 at +2304+0 4096x2304, DP-8 at +0+0 2304x4096).
 mons = [
     {"x": 2304, "y": 2304, "w": 2560, "h": 1600},  # eDP-1 (laptop)
@@ -147,7 +206,7 @@ check("toast flips above when cursor is near bottom",
       y < 3850,
       f"x={x} y={y} (cursor y=3850)")
 
-# 4e. _compute_origin with caret_pos given takes precedence over mouse pointer.
+# 4g. _compute_origin with caret_pos given takes precedence over mouse pointer.
 _ov_mod._mouse_position = lambda default: (0, 0)  # would put toast far away
 x, y = _compute_origin("cursor", 6400, 4096, 250, 80, 16, 20, caret_pos=(3500, 3000))
 mon = _monitor_containing(3500, 3000, mons)
@@ -155,20 +214,20 @@ check("caret_pos overrides mouse pointer",
       mon is not None and mon["x"] <= x < mon["x"] + mon["w"],
       f"x={x} y={y}")
 
-# 4f. IMEMonitor: returns a bool whether or not fcitx5 is running; cache is stable.
+# 4h. IMEMonitor: returns a bool whether or not fcitx5 is running; cache is stable.
 ime = IMEMonitor()
 v1 = ime.is_composing()
 v2 = ime.is_composing()
 check("IMEMonitor returns a stable bool", isinstance(v1, bool) and v1 == v2, f"v1={v1} v2={v2}")
 
-# 4g. CaretTracker initialises whether or not AT-SPI is available.
+# 4i. CaretTracker initialises whether or not AT-SPI is available.
 caret = CaretTracker()
 check("CaretTracker constructs without raising", True, f"available={caret.available}")
 pos = caret.get_position()
 check("CaretTracker returns None before any caret event", pos is None, repr(pos))
 caret.stop()  # idempotent
 
-# 4h. Tracker idle-reset: buffer must be cleared when too much time passes
+# 4j. Tracker idle-reset: buffer must be cleared when too much time passes
 # between keystrokes. Regression test for the "vercommit" bug — stale buffer
 # fragments from before a mouse click / window switch leaking into a new word.
 try:
@@ -216,6 +275,50 @@ try:
         def __init__(self, keycode, keystate):
             self.keycode = keycode
             self.keystate = keystate
+
+    # Recorder integration: raw key actions and tracker decisions are
+    # available when the user enables the debug recorder.
+    rec_keys = InputRecorder(limit=20)
+    rec_keys.set_enabled(True)
+    emitted_rec: list[str] = []
+    t_rec = Tracker(on_word=emitted_rec.append, input_recorder=rec_keys)
+    for ch in "helo":
+        t_rec._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t_rec._handle_key(_FakeKE("KEY_SPACE", 1))
+    rec_entries = rec_keys.snapshot()["entries"]
+    rec_actions = [e["action"] for e in rec_entries]
+    check("input recorder captures keyboard key_down events",
+          "key_down" in rec_actions and any(
+              e["action"] == "key_down" and e["data"].get("key") == "KEY_H"
+              for e in rec_entries
+          ),
+          repr(rec_entries))
+    check("input recorder captures emitted words",
+          emitted_rec == ["helo"] and any(
+              e["action"] == "word_emitted"
+              and e["data"].get("raw") == "helo"
+              and e["data"].get("normalized") == "helo"
+              for e in rec_entries
+          ),
+          f"emitted={emitted_rec} entries={rec_entries}")
+
+    class _AlwaysActiveGuard:
+        def is_active(self): return True
+
+    rec_secure = InputRecorder(limit=10)
+    rec_secure.set_enabled(True)
+    t_secure = Tracker(
+        on_word=lambda _w: None,
+        locker_monitor=_AlwaysActiveGuard(),
+        input_recorder=rec_secure,
+    )
+    t_secure._handle_key(_FakeKE("KEY_S", 1))
+    secure_entries = rec_secure.snapshot()["entries"]
+    check("input recorder redacts secure-context dropped keys",
+          len(secure_entries) == 1
+          and secure_entries[0]["action"] == "secure_context_drop"
+          and "KEY_S" not in repr(secure_entries[0]["data"]),
+          repr(secure_entries))
 
     # Case 6: pausing mid-word should not let the resumed suffix become a
     # standalone word/typo. The next word after a boundary still records.
@@ -548,6 +651,61 @@ try:
               "active_keyboard_count", "active_keyboard_paths",
               "device_read_errors", "keyboard_rescans",
           )}))
+    check("status JSON exposes input recorder diagnostics",
+          "input_recording_enabled" in data and "input_recording_count" in data
+          and data.get("input_recording_enabled") is False
+          and data.get("input_recording_count") == 0,
+          repr({k: data.get(k) for k in (
+              "input_recording_enabled", "input_recording_count",
+          )}))
+
+    r = client.get("/api/debug/input-recorder")
+    recorder_state = r.get_json() if r.status_code == 200 else {}
+    check("GET /api/debug/input-recorder -> 200",
+          r.status_code == 200 and recorder_state.get("enabled") is False
+          and recorder_state.get("count") == 0,
+          f"status={r.status_code} body={recorder_state!r}")
+
+    r = client.post("/api/debug/input-recorder", json={"enabled": True})
+    recorder_state = r.get_json() if r.status_code == 200 else {}
+    check("POST /api/debug/input-recorder enables recording",
+          r.status_code == 200 and recorder_state.get("enabled") is True
+          and engine.input_recorder.enabled is True
+          and engine.read(db.get_meta, "input_recorder_enabled") == "1",
+          f"status={r.status_code} body={recorder_state!r}")
+
+    engine.input_recorder.record("system", "smoke_marker", {"ok": True})
+    r = client.get("/api/debug/input-recorder/export")
+    export_payload = r.get_json() if r.status_code == 200 else {}
+    check("GET /api/debug/input-recorder/export returns JSON attachment",
+          r.status_code == 200
+          and "attachment" in r.headers.get("Content-Disposition", "")
+          and any(e["action"] == "smoke_marker" for e in export_payload.get("entries", [])),
+          f"status={r.status_code} headers={dict(r.headers)!r} body={export_payload!r}")
+
+    r = client.post("/api/debug/input-recorder/clear")
+    clear_state = r.get_json() if r.status_code == 200 else {}
+    check("POST /api/debug/input-recorder/clear empties recorder",
+          r.status_code == 200 and clear_state.get("count") == 0
+          and engine.input_recorder.snapshot()["entries"] == [],
+          f"status={r.status_code} body={clear_state!r}")
+
+    class FakeServiceController:
+        def __init__(self):
+            self.calls = 0
+        def restart(self):
+            self.calls += 1
+            return {"scheduled": True, "command": ["fake-systemctl", "restart"]}
+
+    fake_service = FakeServiceController()
+    engine.service_controller = fake_service
+    r = client.post("/api/service/restart")
+    service_restart = r.get_json() if r.status_code == 202 else {}
+    check("POST /api/service/restart schedules restart",
+          r.status_code == 202 and service_restart.get("ok") is True
+          and service_restart.get("scheduled") is True
+          and fake_service.calls == 1,
+          f"status={r.status_code} body={service_restart!r} calls={fake_service.calls}")
 
     r = client.get("/api/stats/today")
     check("GET /api/stats/today -> 200", r.status_code == 200)
@@ -568,7 +726,18 @@ try:
           f"{len(lb['alltime']['top_words'])} rows")
 
     r = client.get("/")
-    check("GET / -> 200 (dashboard renders)", r.status_code == 200 and b"typefreq" in r.data)
+    check("GET / -> 200 (dashboard renders)", r.status_code == 200 and b"Typefreq" in r.data)
+    local_restart_visible = (
+        b'id="service-restart-btn"' in r.data and b"Restart service" in r.data
+    )
+    check("local dashboard exposes restart service control",
+          local_restart_visible,
+          "" if local_restart_visible else r.data[:200].decode("utf-8", "replace"))
+
+    site_source = (Path(__file__).resolve().parent / "src/pages/index.astro").read_text()
+    check("public dashboard exposes service action controls",
+          'id="service-restart-btn"' in site_source
+          and 'id="service-reinstall-btn"' in site_source)
 
     # 5b. Cross-thread DB access (Flask handlers run in worker threads with
     # threaded=True). Regression test for a SQLite check_same_thread crash we
@@ -588,6 +757,8 @@ try:
 
     # 5c. When a typo is detected, word_counts records the SUGGESTION, not the
     # literal typo. The typo is still preserved in the typos table.
+    engine.input_recorder.set_enabled(True)
+    engine.input_recorder.clear()
     before = {r["word"]: r["count"] for r in engine.read(db.top_words, limit=50)}
     typos_before = len(engine.read(db.recent_typos, limit=100))
     engine._on_word("becausee")
@@ -604,6 +775,14 @@ try:
               t["word"] == "becausee" and t["suggestion"] == "because" for t in typos_after
           ),
           f"typos rows: {len(typos_after)} (was {typos_before})")
+    check("input recorder captures engine typo_recorded",
+          any(
+              e["source"] == "engine" and e["action"] == "typo_recorded"
+              and e["data"].get("word") == "becausee"
+              and e["data"].get("suggestion") == "because"
+              for e in engine.input_recorder.snapshot()["entries"]
+          ),
+          repr(engine.input_recorder.snapshot()))
 
     # 5d. Custom words: whitelist suppresses the typo and counts the original.
     # Spell-check sanity: plain check still flags "becausee".
@@ -695,6 +874,14 @@ try:
     check("retract: typos_retracted incremented",
           engine.typos_retracted == retracted_before + 1,
           f"before={retracted_before} after={engine.typos_retracted}")
+    check("input recorder captures engine typo_retracted",
+          any(
+              e["source"] == "engine" and e["action"] == "typo_retracted"
+              and e["data"].get("word") == "recieve"
+              and e["data"].get("suggestion") == "receive"
+              for e in engine.input_recorder.snapshot()["entries"]
+          ),
+          repr(engine.input_recorder.snapshot()))
 
     # Backspace with no recent typo is a no-op.
     retracted_before2 = engine.typos_retracted
