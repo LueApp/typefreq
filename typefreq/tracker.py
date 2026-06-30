@@ -95,6 +95,10 @@ class Tracker:
         # same word, not a standalone word. Suppress that resumed fragment
         # until the user hits a boundary.
         self._suppress_current_token = False
+        # Same idea for polkit guards: if a stale/false-positive auth guard
+        # drops the start of a token and then expires mid-word, the resumed
+        # suffix is ambiguous.
+        self._last_polkit_drop_at = 0.0
         # If True, the next non-empty flush is silently dropped. Set after a
         # word-level navigation chord (Ctrl+Left/Right/Up/Down) because the
         # user has moved the caret into the middle of existing text — the
@@ -236,6 +240,7 @@ class Tracker:
         locker_active = self._locker is not None and self._locker.is_active()
         polkit_active = self._polkit is not None and self._polkit.is_active()
         if locker_active or polkit_active:
+            now = time.monotonic()
             self._record_input(
                 "tracker",
                 "secure_context_drop",
@@ -249,6 +254,8 @@ class Tracker:
             if self._buf:
                 self._buf.clear()
             self._suppress_current_token = False
+            if polkit_active:
+                self._last_polkit_drop_at = now
             # Drop modifier state too — leaving it set would let the next
             # post-unlock keystroke think a modifier is still held.
             if self._mods:
@@ -332,7 +339,8 @@ class Tracker:
         # (mouse clicks, window focus changes, thinking pauses) which would
         # otherwise leave fragments like "ver" in the buffer and corrupt
         # the next word the user types.
-        idle_reset = self._apply_idle_reset(time.monotonic())
+        now = time.monotonic()
+        idle_reset = self._apply_idle_reset(now)
         if idle_reset:
             self._record_input("tracker", "idle_reset", {"key": keyname})
 
@@ -412,6 +420,11 @@ class Tracker:
 
         if idle_reset:
             self._suppress_current_token = True
+        elif self._last_polkit_drop_at and (
+            now - self._last_polkit_drop_at
+        ) <= IDLE_TIMEOUT_S:
+            self._suppress_current_token = True
+            self._last_polkit_drop_at = 0.0
         self._buf.append(ch)
         self._record_input(
             "tracker",
@@ -467,6 +480,10 @@ class Tracker:
         # user has clearly moved on from whatever navigation set it.
         if reset or (now - self._last_activity_at) > IDLE_TIMEOUT_S:
             self._skip_next_word = False
+        if self._last_polkit_drop_at and (
+            now - self._last_polkit_drop_at
+        ) > IDLE_TIMEOUT_S:
+            self._last_polkit_drop_at = 0.0
         self._last_activity_at = now
         return reset
 

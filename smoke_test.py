@@ -572,6 +572,26 @@ try:
     check("polkit on: no word emitted from the locked period",
           emitted5 == ["hello"], f"emitted={emitted5}")
 
+    # Regression: if a stale/false-positive polkit guard drops the start of
+    # "However" and expires before "owever,", the suffix must not become a
+    # standalone typo candidate.
+    emitted5.clear()
+    fake_pk.active = True
+    t5._handle_key(_FakeKE("KEY_H", 1))
+    fake_pk.active = False
+    for ch in "owever":
+        t5._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t5._handle_key(_FakeKE("KEY_COMMA", 1))
+    check("polkit off after drop: resumed suffix is suppressed",
+          emitted5 == [] and t5.polkit_skipped >= skipped_before + len("secret") + 2,
+          f"emitted={emitted5} polkit_skipped={t5.polkit_skipped}")
+
+    for ch in "next":
+        t5._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t5._handle_key(_FakeKE("KEY_SPACE", 1))
+    check("polkit off after suppressed suffix: next word records normally",
+          emitted5 == ["next"], f"emitted={emitted5}")
+
     # Either guard active should drop — verify the OR logic.
     fake_locker6 = FakeLocker()
     fake_polkit6 = FakePolkit()
