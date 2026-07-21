@@ -38,6 +38,11 @@ BOUNDARY_KEYS = {
     "KEY_ESC",
 }
 
+# Bracket keys hit mid-word are usually accidental adjacent-key presses. If
+# typing continues immediately, suppress the next fragment so "op[erate"
+# doesn't become the typo "erate".
+ACCIDENTAL_SPLIT_KEYS = {"KEY_LEFTBRACE", "KEY_RIGHTBRACE"}
+
 BACKSPACE_KEYS = {"KEY_BACKSPACE"}
 COMPLETION_KEYS = {"KEY_TAB"}
 CANCEL_KEYS = {"KEY_C"}

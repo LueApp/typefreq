@@ -66,13 +66,14 @@ check("top_words_in_period(today) returns rows",
 check("top_words_in_period(today) top is 'the' x3",
       top_today[0]["word"] == "the" and top_today[0]["count"] == 3,
       repr(top_today[0]))
-# Period helpers should chain: year_start <= month_start <= week_start <= today.
+# Period helpers should never point into the future. Month/week starts do not
+# have a stable ordering near month boundaries.
 y, m, wk, td = (
     db.year_start_utc(), db.month_start_utc(),
     db.week_start_utc(), db.day_start_utc(),
 )
-check("year_start_utc <= month_start_utc <= week_start_utc <= day_start_utc",
-      y <= m <= wk <= td, f"y={y} m={m} w={wk} d={td}")
+check("period starts are not in the future",
+      y <= m <= td and y <= wk <= td, f"y={y} m={m} w={wk} d={td}")
 # A future-period filter should return nothing.
 future = db.top_words_in_period(conn, since=td + 86400, limit=10)
 check("top_words_in_period(tomorrow) is empty", future == [], repr(future))
@@ -351,6 +352,29 @@ try:
     finally:
         _tracker_mod.time.monotonic = original_monotonic
 
+    # Regression: held Backspace arrives as one key-down followed by key-hold
+    # repeats. Every repeat deletes on screen and must also shrink our buffer.
+    repeated_bs_calls: list[int] = []
+    repeated_bs_words: list[str] = []
+    t_repeated_bs = Tracker(
+        on_word=repeated_bs_words.append,
+        on_backspace=lambda: repeated_bs_calls.append(1),
+    )
+    t_repeated_bs._buf[:] = list("batteo")
+    t_repeated_bs._last_activity_at = time.monotonic()
+    t_repeated_bs._handle_key(_FakeKE("KEY_BACKSPACE", 1))
+    for _ in range(12):
+        t_repeated_bs._handle_key(_FakeKE("KEY_BACKSPACE", 2))
+    check("held Backspace keeps the tracker buffer synchronized",
+          t_repeated_bs._buf == [], f"buf={t_repeated_bs._buf}")
+    check("held Backspace retracts at most one recent typo",
+          len(repeated_bs_calls) == 1, f"calls={len(repeated_bs_calls)}")
+    for ch in "battery":
+        t_repeated_bs._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t_repeated_bs._handle_key(_FakeKE("KEY_SPACE", 1))
+    check("word after held Backspace has no stale prefix",
+          repeated_bs_words == ["battery"], f"emitted={repeated_bs_words}")
+
     # 4i. Ctrl+Backspace: discard in-progress word, do NOT flush as typo.
     # Also verify on_backspace fires (so the engine's retract path runs).
     emitted: list[str] = []
@@ -407,7 +431,45 @@ try:
           t2._buf == [] and emitted == [],
           f"buf={t2._buf} emitted={emitted}")
 
-    # 4l. Ctrl+arrow navigation: arms "skip next word" — the next word
+    # 4l. Accidental bracket hit inside a word should not turn the suffix
+    # into a standalone typo candidate. This mirrors "op[erate" becoming
+    # "op" + typo "erate".
+    rec_stray = InputRecorder(limit=30)
+    rec_stray.set_enabled(True)
+    emitted_stray: list[str] = []
+    t_stray = Tracker(on_word=emitted_stray.append, input_recorder=rec_stray)
+    for key in ["KEY_O", "KEY_P", "KEY_LEFTBRACE"]:
+        t_stray._handle_key(_FakeKE(key, 1))
+    for ch in "erate":
+        t_stray._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t_stray._handle_key(_FakeKE("KEY_SPACE", 1))
+    check("stray bracket: resumed suffix is suppressed",
+          emitted_stray == ["op"] and any(
+              e["action"] == "word_suppressed"
+              and e["data"].get("raw") == "erate"
+              for e in rec_stray.snapshot()["entries"]
+          ),
+          f"emitted={emitted_stray} entries={rec_stray.snapshot()['entries']}")
+
+    for ch in "it":
+        t_stray._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t_stray._handle_key(_FakeKE("KEY_SPACE", 1))
+    check("stray bracket: following word records normally",
+          emitted_stray == ["op", "it"], f"emitted={emitted_stray}")
+
+    emitted_bracket: list[str] = []
+    t_bracket = Tracker(on_word=emitted_bracket.append)
+    for ch in "word":
+        t_bracket._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    for key in ["KEY_SPACE", "KEY_LEFTBRACE", "KEY_SPACE"]:
+        t_bracket._handle_key(_FakeKE(key, 1))
+    for ch in "next":
+        t_bracket._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t_bracket._handle_key(_FakeKE("KEY_SPACE", 1))
+    check("bracket after whitespace does not suppress next word",
+          emitted_bracket == ["word", "next"], f"emitted={emitted_bracket}")
+
+    # 4m. Ctrl+arrow navigation: arms "skip next word" — the next word
     # typed after navigation is treated as a mid-word insertion and dropped.
     emitted.clear(); bs_calls.clear()
     t3 = Tracker(on_word=lambda w: emitted.append(w))
@@ -441,7 +503,7 @@ try:
     t3._apply_idle_reset(time.monotonic())
     check("idle reset clears the skip flag", t3._skip_next_word is False)
 
-    # 4m. Tracker should rescan for keyboards after a device disappears.
+    # 4n. Tracker should rescan for keyboards after a device disappears.
     # This guards the "service stays up but capture never resumes" failure
     # seen after suspend / reconnect / input-device churn.
     class _FakeDev:

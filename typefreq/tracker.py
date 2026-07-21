@@ -302,8 +302,12 @@ class Tracker:
                 self._caps_lock = not self._caps_lock
             return
 
-        # We only act on key-down events for character processing.
-        if state != 1:
+        # Most held-key repeats are intentionally ignored. Backspace is the
+        # exception: editors apply every repeat, so ignoring them leaves our
+        # buffer containing characters that have already disappeared on
+        # screen.
+        is_backspace_repeat = state == 2 and keyname in keymap.BACKSPACE_KEYS
+        if state != 1 and not is_backspace_repeat:
             return
 
         # Pause hotkey: Ctrl+Alt+Shift+P.
@@ -363,10 +367,11 @@ class Tracker:
                 self._buf.clear()
                 self._suppress_current_token = False
                 self._record_input("tracker", "shortcut_backspace", {"key": keyname})
-                try:
-                    self.on_backspace()
-                except Exception:
-                    log.exception("on_backspace handler raised")
+                if state == 1:
+                    try:
+                        self.on_backspace()
+                    except Exception:
+                        log.exception("on_backspace handler raised")
                 return
             # Ctrl+arrow = word-level caret navigation. The next thing the
             # user types is likely INSIDE an existing word (insertion or
@@ -390,12 +395,13 @@ class Tracker:
                 "backspace",
                 {"buffer": "".join(self._buf), "buffer_len": len(self._buf)},
             )
-            # Any backspace signals "I'm fixing something" — let the engine
-            # cancel any pending typo notifications.
-            try:
-                self.on_backspace()
-            except Exception:
-                log.exception("on_backspace handler raised")
+            # Notify the engine once per physical press. Key-repeat events
+            # still update the buffer but must not retract multiple typos.
+            if state == 1:
+                try:
+                    self.on_backspace()
+                except Exception:
+                    log.exception("on_backspace handler raised")
             return
 
         if keyname in keymap.COMPLETION_KEYS:
@@ -405,8 +411,25 @@ class Tracker:
             return
 
         if keyname in keymap.BOUNDARY_KEYS:
+            had_buffer = bool(self._buf)
+            suppressing = self._suppress_current_token
+            skipping = self._skip_next_word
             self._flush()
-            self._suppress_current_token = False
+            if (
+                had_buffer
+                and not suppressing
+                and not skipping
+                and keyname in keymap.ACCIDENTAL_SPLIT_KEYS
+                and not self._has_shift()
+            ):
+                self._suppress_current_token = True
+                self._record_input(
+                    "tracker",
+                    "stray_boundary_suppress_next",
+                    {"key": keyname},
+                )
+            else:
+                self._suppress_current_token = False
             self._record_input("tracker", "boundary", {"key": keyname})
             return
 
