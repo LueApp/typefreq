@@ -303,6 +303,62 @@ try:
           ),
           f"emitted={emitted_rec} entries={rec_entries}")
 
+    # A capital letter inside an otherwise lowercase token is an implicit
+    # word boundary. Keep that boundary tentative until the token is flushed
+    # so correcting the capital with Backspace still restores a single word.
+    emitted_capitals: list[str] = []
+    raw_capitals: list[str] = []
+    rec_capitals = InputRecorder(limit=30)
+    rec_capitals.set_enabled(True)
+    t_capitals = Tracker(
+        on_word=emitted_capitals.append,
+        on_raw_word=raw_capitals.append,
+        input_recorder=rec_capitals,
+    )
+
+    def type_shifted_letter(tracker, letter: str) -> None:
+        tracker._handle_key(_FakeKE("KEY_LEFTSHIFT", 1))
+        tracker._handle_key(_FakeKE(f"KEY_{letter.upper()}", 1))
+        tracker._handle_key(_FakeKE("KEY_LEFTSHIFT", 0))
+
+    type_shifted_letter(t_capitals, "r")
+    for ch in "ead":
+        t_capitals._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    type_shifted_letter(t_capitals, "w")
+    for ch in "rite":
+        t_capitals._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t_capitals._handle_key(_FakeKE("KEY_SPACE", 1))
+    check("capital boundary: ReadWrite is detected as two words",
+          emitted_capitals == ["read", "write"]
+          and raw_capitals == ["Read", "Write"]
+          and any(
+              e["action"] == "capitalized_words_split"
+              and e["data"].get("parts") == ["Read", "Write"]
+              for e in rec_capitals.snapshot()["entries"]
+          ),
+          f"emitted={emitted_capitals} raw={raw_capitals}")
+
+    emitted_capitals.clear(); raw_capitals.clear()
+    type_shifted_letter(t_capitals, "r")
+    for ch in "ead":
+        t_capitals._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    type_shifted_letter(t_capitals, "w")
+    t_capitals._handle_key(_FakeKE("KEY_BACKSPACE", 1))
+    for ch in "able":
+        t_capitals._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t_capitals._handle_key(_FakeKE("KEY_SPACE", 1))
+    check("capital boundary: quick Backspace keeps the original word",
+          emitted_capitals == ["readable"] and raw_capitals == ["Readable"],
+          f"emitted={emitted_capitals} raw={raw_capitals}")
+
+    emitted_capitals.clear(); raw_capitals.clear()
+    for ch in "HELLO":
+        type_shifted_letter(t_capitals, ch)
+    t_capitals._handle_key(_FakeKE("KEY_SPACE", 1))
+    check("capital boundary: consecutive capitals stay together",
+          emitted_capitals == ["hello"] and raw_capitals == ["HELLO"],
+          f"emitted={emitted_capitals} raw={raw_capitals}")
+
     class _AlwaysActiveGuard:
         def is_active(self): return True
 

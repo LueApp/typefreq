@@ -33,6 +33,26 @@ HOTKEY_PAUSE_KEY = "KEY_P"
 DEVICE_RESCAN_INTERVAL_S = 5.0
 
 
+def _split_capitalized_words(raw: str) -> list[str]:
+    """Split joined words at lowercase-to-uppercase transitions.
+
+    The boundary stays implicit until the whole token is flushed, so an
+    uppercase letter that is immediately backspaced does not commit the text
+    before it. Connectors and runs of capitals remain part of one token.
+    """
+    boundaries = [
+        i
+        for i in range(1, len(raw))
+        if raw[i - 1].islower() and raw[i].isupper()
+    ]
+    if not boundaries:
+        return [raw]
+
+    starts = [0, *boundaries]
+    ends = [*boundaries, len(raw)]
+    return [raw[start:end] for start, end in zip(starts, ends)]
+
+
 def find_keyboards() -> list[evdev.InputDevice]:
     """Return all input devices that look like keyboards."""
     out: list[evdev.InputDevice] = []
@@ -472,21 +492,29 @@ class Tracker:
             self.skipped_after_nav += 1
             self._record_input("tracker", "word_skipped_after_nav", {"raw": raw})
             return
-        self.on_raw_word(raw)
-        norm = normalize(raw)
-        if norm is not None:
-            self.words_emitted += 1
+        parts = _split_capitalized_words(raw)
+        if len(parts) > 1:
             self._record_input(
                 "tracker",
-                "word_emitted",
-                {"raw": raw, "normalized": norm},
+                "capitalized_words_split",
+                {"raw": raw, "parts": parts},
             )
-            try:
-                self.on_word(norm)
-            except Exception:
-                log.exception("on_word handler raised")
-        else:
-            self._record_input("tracker", "word_rejected", {"raw": raw})
+        for part in parts:
+            self.on_raw_word(part)
+            norm = normalize(part)
+            if norm is not None:
+                self.words_emitted += 1
+                self._record_input(
+                    "tracker",
+                    "word_emitted",
+                    {"raw": part, "normalized": norm},
+                )
+                try:
+                    self.on_word(norm)
+                except Exception:
+                    log.exception("on_word handler raised")
+            else:
+                self._record_input("tracker", "word_rejected", {"raw": part})
 
     def _apply_idle_reset(self, now: float) -> bool:
         """If too much time has passed since the last keystroke, discard the
