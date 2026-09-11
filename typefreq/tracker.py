@@ -34,23 +34,32 @@ DEVICE_RESCAN_INTERVAL_S = 5.0
 
 
 def _split_capitalized_words(raw: str) -> list[str]:
-    """Split joined words at lowercase-to-uppercase transitions.
+    """Split joined words at capitalized implicit boundaries.
 
     The boundary stays implicit until the whole token is flushed, so an
     uppercase letter that is immediately backspaced does not commit the text
-    before it. Connectors and runs of capitals remain part of one token.
+    before it. A hyphen before the capital is discarded as a connector;
+    lowercase hyphenated words and runs of capitals remain one token.
     """
-    boundaries = [
-        i
-        for i in range(1, len(raw))
-        if raw[i - 1].islower() and raw[i].isupper()
-    ]
-    if not boundaries:
-        return [raw]
+    parts: list[str] = []
+    start = 0
+    for i in range(1, len(raw)):
+        if raw[i - 1].islower() and raw[i].isupper():
+            parts.append(raw[start:i])
+            start = i
+        elif (
+            i >= 2
+            and raw[i - 2].islower()
+            and raw[i - 1] == "-"
+            and raw[i].isupper()
+        ):
+            parts.append(raw[start:i - 1])
+            start = i
 
-    starts = [0, *boundaries]
-    ends = [*boundaries, len(raw)]
-    return [raw[start:end] for start, end in zip(starts, ends)]
+    if not parts:
+        return [raw]
+    parts.append(raw[start:])
+    return parts
 
 
 def find_keyboards() -> list[evdev.InputDevice]:

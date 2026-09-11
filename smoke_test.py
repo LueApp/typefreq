@@ -359,6 +359,29 @@ try:
           emitted_capitals == ["hello"] and raw_capitals == ["HELLO"],
           f"emitted={emitted_capitals} raw={raw_capitals}")
 
+    emitted_capitals.clear(); raw_capitals.clear()
+    type_shifted_letter(t_capitals, "e")
+    for ch in "nd":
+        t_capitals._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t_capitals._handle_key(_FakeKE("KEY_MINUS", 1))
+    type_shifted_letter(t_capitals, "a")
+    t_capitals._handle_key(_FakeKE("KEY_SPACE", 1))
+    check("capital boundary: End-A restarts after the connector",
+          emitted_capitals == ["end"] and raw_capitals == ["End", "A"],
+          f"emitted={emitted_capitals} raw={raw_capitals}")
+
+    emitted_capitals.clear(); raw_capitals.clear()
+    for ch in "well":
+        t_capitals._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t_capitals._handle_key(_FakeKE("KEY_MINUS", 1))
+    for ch in "known":
+        t_capitals._handle_key(_FakeKE(f"KEY_{ch.upper()}", 1))
+    t_capitals._handle_key(_FakeKE("KEY_SPACE", 1))
+    check("capital boundary: lowercase hyphenated words stay together",
+          emitted_capitals == ["well-known"]
+          and raw_capitals == ["well-known"],
+          f"emitted={emitted_capitals} raw={raw_capitals}")
+
     class _AlwaysActiveGuard:
         def is_active(self): return True
 
