@@ -151,6 +151,12 @@ class SpellNotifier:
         # differences don't get recorded as typos.
         if word in self._accepted_variants:
             return False, None
+        # Treat hyphenated tokens as compound words. pyspellchecker does not
+        # have reliable support for compounds and may suggest only one side
+        # (for example, "agent-ws" -> "agents"). Keep the complete token
+        # intact rather than reporting that partial suggestion as a typo.
+        if "-" in word:
+            return False, None
         if word in self._spell:
             return False, None
         suggestion = self._spell.correction(word)
